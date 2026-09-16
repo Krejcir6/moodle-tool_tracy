@@ -48,6 +48,11 @@ namespace tool_tracy;
 // Tracy to skip its own (unprotected) one — see bdump.php.
 require_once __DIR__ . '/../bdump.php';
 
+// Defines tool_tracy_log_query(), the target of the optional dev/
+// moodle_database.patch core patch — see query_log.php and
+// classes/database_panel.php.
+require_once __DIR__ . '/../query_log.php';
+
 $library = __DIR__ . '/../thirdparty/tracy/src/tracy.php';
 if (is_file($library)) {
     require_once $library;
@@ -56,9 +61,12 @@ unset($library);
 
 // Required explicitly, same reasoning as the Tracy library above: when
 // enable() is called from config.php, Moodle's own component autoloader
-// isn't registered yet, so \tool_tracy\scrubber can't be relied on to
-// autoload there the way it would once lib/setup.php has run.
+// isn't registered yet, so \tool_tracy\scrubber (and \tool_tracy\query_log,
+// which the very first DB query of the request could conceivably reach
+// before lib/setup.php has registered that autoloader) can't be relied on
+// to autoload there the way they would once lib/setup.php has run.
 require_once __DIR__ . '/scrubber.php';
+require_once __DIR__ . '/query_log.php';
 
 final class bootstrap
 {
@@ -161,5 +169,26 @@ final class bootstrap
         }
 
         return $hijacked;
+    }
+
+    /**
+     * Dumper::toHtml()/toText() options that apply the same masking as
+     * everywhere else in the plugin (the BlueScreen scrubber, kept current
+     * by refreshCfgScrubbing(), plus Debugger::$keysToHide). Bar panels
+     * that render arbitrary Moodle globals ($USER, $SESSION, query
+     * parameters, ...) use this instead of hand-picking "safe" fields —
+     * new properties something adds later are covered automatically,
+     * rather than only the ones anyone thought to list.
+     */
+    public static function scrubbedDumpOptions(): array
+    {
+        if (!class_exists(\Tracy\Debugger::class, false)) {
+            return [];
+        }
+
+        return [
+            \Tracy\Dumper::KEYS_TO_HIDE => \Tracy\Debugger::$keysToHide,
+            \Tracy\Dumper::SCRUBBER => \Tracy\Debugger::getBlueScreen()->scrubber,
+        ];
     }
 }

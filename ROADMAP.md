@@ -1,6 +1,6 @@
 # Roadmap
 
-## Phase 1 — safe, functional skeleton (current)
+## Phase 1 — safe, functional skeleton (done)
 
 Goal: get Tracy correctly wired into Moodle without introducing a security
 or stability regression, before growing the feature set. Safety is the
@@ -41,37 +41,85 @@ default, not an opt-in.
       does. `bdump_unsafe()` is the explicit, clearly-labelled opt-out for
       when a real value is genuinely needed.
 - [x] Basic automated test coverage: `tests/bootstrap_test.php` +
-      `tests/scrubber_test.php` + `tests/bdump_test.php` (PHPUnit —
-      mode-string mapping, CLI disables the bar, `hijackedHandlers()`,
-      scrubber pattern/exact-match behaviour, `bdump()`/`bdump_unsafe()`)
-      and `tests/ajax_smoke.sh` (real-HTTP check that Tracy stays out of
-      JSON AJAX responses — not possible as a PHPUnit test, see README.md).
-- [ ] `handler_check_panel` rendering test (getTab()/getPanel() output).
-- [ ] Explicit check: installing this plugin on an already-live site with no
-      `config.php` changes and default settings must be a complete no-op
-      (nothing enabled, nothing visible, no behaviour change).
+      `tests/scrubber_test.php` + `tests/bdump_test.php` +
+      `tests/handler_check_panel_test.php` + `tests/noop_by_default_test.php`
+      (PHPUnit — mode-string mapping, CLI disables the bar,
+      `hijackedHandlers()`, scrubber pattern/exact-match behaviour,
+      `bdump()`/`bdump_unsafe()`, panel rendering/escaping, admin setting
+      defaults) and `tests/ajax_smoke.sh` (real-HTTP check that Tracy stays
+      out of JSON AJAX responses — not possible as a PHPUnit test, see
+      README.md). Writing the panel test also caught and fixed a real
+      (non-security) double-escaping bug in `handler_check_panel::getPanel()`.
+- [x] `handler_check_panel` rendering test — see above.
+- [x] No-op-by-default check: `tests/noop_by_default_test.php` locks in the
+      three admin setting defaults (`enabled=0`, `mode=detect`,
+      `restricttoadmins=1`) at the PHPUnit level. The deeper claim — a real
+      request produces zero Tracy footprint when config.php has no
+      low-level `enable()` call — can't be verified by a PHPUnit test in
+      *this* dev environment (its own config.php always calls the
+      low-level path, unconditionally, for developing the plugin itself),
+      so it was verified manually once instead: with that config.php line
+      commented out and `enabled=0`, `/login/index.php` came back with zero
+      case-insensitive occurrences of "tracy" anywhere in the response and
+      no `tracy-session` cookie — only the ordinary `MoodleSession` one.
 
-## Phase 2 — more debug bar panels
+## Phase 2 — more debug bar panels (current)
 
 Goal: once the base is solid, make Tracy genuinely useful for day-to-day
 Moodle development, not just crash reporting.
 
-- [ ] **Routing/page panel** — current `$PAGE` type, URL, layout, matched
-      script.
-- [ ] **User panel** — current `$USER` summary (id, username, roles/
-      capabilities in the current context). Must respect `restricttoadmins`
-      the same way the bar itself does — this panel is exactly the kind of
-      thing that must never leak to a non-admin production visitor.
-- [ ] **Session panel** — session id, `$SESSION` contents, active cache
-      stores.
-- [ ] **Nice to have: database/query panel** (query log, timing, N+1
-      detection). Likely blocked without patching Moodle core: unlike e.g.
-      Doctrine's SQL logger, `moodle_database` doesn't expose a public
-      per-query hook to tap into from a plugin. Needs research before
-      committing to it — worth checking `$DB->perf_get_reads()`/
-      `perf_get_writes()` and what `tool_profiling`/`report_performance`
-      already tap into, to see if there's enough exposed without touching
-      core. Track as uncertain, not planned, until that research lands.
+- [x] **Routing panel** (`routing_panel`) — method + URL from `$_SERVER`
+      (not `$PAGE->url`, which isn't reliably set yet when this could run),
+      `$PAGE` type/layout/heading/context/course. Query string params with
+      sensitive-looking names (`sesskey`, `token`, ...) are masked via the
+      same `scrubber` pattern, reused rather than reinvented.
+- [x] **User panel** (`user_panel`) — deliberately a full scrubbed dump of
+      `$USER` (`bootstrap::scrubbedDumpOptions()`) rather than a hand-picked
+      field list, same reasoning as `$CFG`: any auth/SSO/profile-field
+      plugin can add properties, and a hand-picked list would need updating
+      every time one does. Plus `isloggedin()`/`isguestuser()`/
+      `is_siteadmin()` flags. Always the *viewing* user's own data, but the
+      bar is visible to every logged-in user (not just admins) whenever
+      Tracy is in development mode, so it's still fully scrubbed.
+- [x] **Session panel** (`session_panel`) — the raw PHP session ID is never
+      shown, hardcoded, regardless of what the scrubber would catch
+      (equivalent to leaking an auth cookie); `$SESSION` contents go
+      through the same scrubbed dump as `$USER`, with `sesskey` explicitly
+      unset as a belt-and-braces on top of that.
+- [x] **Database panel** (`database_panel`) — two tiers. Aggregate counters
+      (`$DB->perf_get_reads()`/`perf_get_writes()`/`perf_get_queries_time()`)
+      are public API, always shown, no core changes. A full per-query table
+      needs the optional `dev/moodle_database.patch` (see below) — without
+      it, the panel explains how to get it instead of showing nothing.
+      Slow queries (&ge;5ms amber, &ge;20ms red) and queries repeated
+      &ge;5&times; in one request (classic N+1) are colour-coded per row,
+      plus a dedicated "Duplicate queries" summary table with each
+      duplicated query's *combined* time — the number that actually matters
+      for an N+1 smell, since any single occurrence can look harmless.
+- [x] **Database panel per-query log**: confirmed, not just suspected,
+      that `moodle_database` exposes no public per-query hook —
+      `query_start()`/`query_end()`/`query_log()` are all `protected`, and
+      `query_log()` only ever writes to the error log. Implemented anyway,
+      as an opt-in dev-only core patch (`dev/moodle_database.patch`),
+      guarded by `function_exists()` so it's inert on any site that hasn't
+      applied it. **Two hook points, not one**, discovered live: by the
+      time `query_log()` runs, a query's params have already been
+      rewritten from named (`:password`) to positional (`0, 1, ...`) by
+      `fix_sql_params()` — tested with a literal `password` param and
+      confirmed it leaked in full when only hooking `query_log()`.
+      `fix_sql_params()` is hooked too, capturing the still-named params
+      before that rewrite; `classes/query_log.php` correlates the two back
+      together by exact SQL text (FIFO per distinct string — safe even for
+      the same query repeated with different params, since DB access is
+      synchronous). If correlation ever fails for a query (some internal
+      calls bypass `fix_sql_params()` entirely), params are shown as
+      `(unavailable)`, never as the unscrubbable raw positional array.
+- [x] SVG icons on every panel's tab (including the Phase 1
+      `handler_check_panel`), colour-shifting to red on `database_panel`'s
+      icon when a slow/frequent query is present.
+
+Next up: an **events panel** (Moodle event observers/triggered events for
+the request).
 
 ## Explicitly out of scope for now
 

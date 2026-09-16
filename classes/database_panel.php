@@ -1,0 +1,225 @@
+<?php
+// This file is part of Moodle - http://moodle.org/
+//
+// Moodle is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// Moodle is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
+
+/**
+ * Tracy Bar panel showing database activity.
+ *
+ * Two tiers, deliberately: aggregate counters ($DB->perf_get_reads() etc.)
+ * are public Moodle API and always shown, no core changes needed. The
+ * per-query table needs query_log::entries(), which is only ever populated
+ * if the optional dev/moodle_database.patch has been applied — see
+ * query_log.php and README.md's "Database panel" section. Without it, this
+ * panel still shows the aggregate numbers and explains how to get the rest.
+ *
+ * The per-query table flags two things, colour-coded, no core patch needed
+ * beyond what's already required for the table itself:
+ * - slow queries (time thresholds below);
+ * - frequent/repeated queries (the same SQL text executed many times in one
+ *   request — the classic N+1 smell). Counted purely by exact SQL text, not
+ *   params, since that's what N+1 looks like: one query shape, run once per
+ *   row of some outer loop.
+ *
+ * @package    tool_tracy
+ * @copyright  2026 Radek Krejci
+ * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ */
+
+namespace tool_tracy;
+
+final class database_panel implements \Tracy\IBarPanel
+{
+    /** Row background switches to "slow" (red) at/above this, in ms. */
+    private const SLOW_MS = 20.0;
+
+    /** Row background switches to "moderate" (amber) at/above this, in ms. */
+    private const MODERATE_MS = 5.0;
+
+    /** Same exact SQL text executed at least this many times => flagged as frequent. */
+    private const FREQUENT_THRESHOLD = 5;
+
+    public function getTab(): string
+    {
+        global $DB;
+
+        $reads = method_exists($DB, 'perf_get_reads') ? $DB->perf_get_reads() : null;
+        $writes = method_exists($DB, 'perf_get_writes') ? $DB->perf_get_writes() : null;
+        $time = method_exists($DB, 'perf_get_queries_time') ? $DB->perf_get_queries_time() : null;
+
+        $label = ((int) $reads + (int) $writes) . ' queries';
+        if ($time !== null) {
+            $label .= sprintf(' (%.1f ms)', $time * 1000);
+        }
+
+        $warn = $this->hasWarnings();
+        $color = $warn ? '#c00' : '#6ba9e6';
+
+        return '<span title="Database">'
+            . '<svg viewBox="0 0 24 24" width="16" height="16">'
+            . '<ellipse cx="12" cy="5" rx="8" ry="3" fill="none" stroke="' . $color . '" stroke-width="1.6"/>'
+            . '<path d="M4 5v6c0 1.7 3.6 3 8 3s8-1.3 8-3V5" fill="none" stroke="' . $color . '" stroke-width="1.6"/>'
+            . '<path d="M4 11v6c0 1.7 3.6 3 8 3s8-1.3 8-3v-6" fill="none" stroke="' . $color . '" stroke-width="1.6"/>'
+            . '</svg>'
+            . '<span class="tracy-label">' . htmlspecialchars($label, ENT_QUOTES) . '</span>'
+            . '</span>';
+    }
+
+    public function getPanel(): string
+    {
+        global $DB;
+
+        $rows = [
+            'Reads' => method_exists($DB, 'perf_get_reads') ? $DB->perf_get_reads() : null,
+            'Reads (replica)' => method_exists($DB, 'perf_get_reads_slave') ? $DB->perf_get_reads_slave() : null,
+            'Writes' => method_exists($DB, 'perf_get_writes') ? $DB->perf_get_writes() : null,
+            'Total time' => method_exists($DB, 'perf_get_queries_time')
+                ? sprintf('%.2f ms', $DB->perf_get_queries_time() * 1000)
+                : null,
+        ];
+
+        $html = '<h1>Database</h1><div class="tracy-inner"><table>';
+        foreach ($rows as $label => $value) {
+            if ($value === null) {
+                continue;
+            }
+            $html .= '<tr><th>' . htmlspecialchars($label, ENT_QUOTES) . '</th>'
+                . '<td>' . htmlspecialchars((string) $value, ENT_QUOTES) . '</td></tr>';
+        }
+        $html .= '</table>';
+
+        $entries = query_log::entries();
+
+        if ($entries === []) {
+            $html .= '<p>Per-query log not available. Moodle core does not expose a public '
+                . 'per-query hook — this needs an optional, dev-only one-line patch to '
+                . '<code>lib/dml/moodle_database.php</code>. See '
+                . '<code>dev/moodle_database.patch</code> and README.md\'s '
+                . '"Database panel" section.</p>';
+        } else {
+            $counts = array_count_values(array_column($entries, 'sql'));
+
+            $html .= '<p><span style="' . $this->style(self::MODERATE_MS, 0) . '">&nbsp;&nbsp;</span> &ge; '
+                . self::MODERATE_MS . ' ms &nbsp; '
+                . '<span style="' . $this->style(self::SLOW_MS, 0) . '">&nbsp;&nbsp;</span> &ge; '
+                . self::SLOW_MS . ' ms &nbsp; '
+                . '<span style="' . $this->style(0, self::FREQUENT_THRESHOLD) . '">&nbsp;&nbsp;</span> '
+                . 'run &ge; ' . self::FREQUENT_THRESHOLD . '&times; (possible N+1)</p>';
+
+            $duplicates = $this->duplicateSummary($entries);
+            if ($duplicates !== []) {
+                $html .= '<h2>Duplicate queries (possible N+1)</h2>'
+                    . '<table><tr><th>&times;</th><th>Total time</th><th>SQL</th></tr>';
+                foreach ($duplicates as $sql => $group) {
+                    $html .= '<tr style="' . $this->style(0, $group['count']) . '">'
+                        . '<td>' . htmlspecialchars((string) $group['count'], ENT_QUOTES) . '</td>'
+                        . '<td>' . htmlspecialchars(sprintf('%.2f ms', $group['time'] * 1000), ENT_QUOTES) . '</td>'
+                        . '<td><code>' . htmlspecialchars((string) $sql, ENT_QUOTES) . '</code></td>'
+                        . '</tr>';
+                }
+                $html .= '</table>';
+            }
+
+            $html .= '<h2>All queries</h2>';
+            $html .= '<table><tr><th>Time</th><th>&times;</th><th>SQL</th><th>Params</th></tr>';
+            foreach ($entries as $entry) {
+                $timeMs = $entry['time'] * 1000;
+                $count = $counts[$entry['sql']] ?? 1;
+
+                // null here specifically means correlation with the named
+                // params captured by fix_sql_params() failed for this
+                // query (see classes/query_log.php) — never fall back to
+                // showing the raw positional array in that case, since it
+                // can no longer be matched against the scrubber by key.
+                $params = $entry['params'] === null
+                    ? '<em>(unavailable — see classes/query_log.php)</em>'
+                    : \Tracy\Dumper::toHtml($entry['params'], bootstrap::scrubbedDumpOptions());
+
+                $html .= '<tr style="' . $this->style($timeMs, $count) . '">'
+                    . '<td>' . htmlspecialchars(sprintf('%.2f ms', $timeMs), ENT_QUOTES) . '</td>'
+                    . '<td>' . htmlspecialchars((string) $count, ENT_QUOTES) . '</td>'
+                    . '<td><code>' . htmlspecialchars((string) $entry['sql'], ENT_QUOTES) . '</code></td>'
+                    . '<td>' . $params . '</td>'
+                    . '</tr>';
+            }
+            $html .= '</table>';
+        }
+
+        $html .= '</div>';
+
+        return $html;
+    }
+
+    /**
+     * Groups entries by exact SQL text, keeping only those run at least
+     * self::FREQUENT_THRESHOLD times, with their combined ("if this ran
+     * once instead of N times") total time — the number that actually
+     * matters for an N+1 smell, since any single occurrence can look
+     * individually harmless. Sorted most expensive first.
+     *
+     * @param array<int, array{sql: ?string, params: ?array, time: float, error: mixed}> $entries
+     * @return array<string, array{count: int, time: float}>
+     */
+    private function duplicateSummary(array $entries): array
+    {
+        $groups = [];
+        foreach ($entries as $entry) {
+            $sql = $entry['sql'] ?? '';
+            $groups[$sql]['count'] = ($groups[$sql]['count'] ?? 0) + 1;
+            $groups[$sql]['time'] = ($groups[$sql]['time'] ?? 0.0) + $entry['time'];
+        }
+
+        $duplicates = array_filter($groups, static fn (array $g): bool => $g['count'] >= self::FREQUENT_THRESHOLD);
+        uasort($duplicates, static fn (array $a, array $b): int => $b['time'] <=> $a['time']);
+
+        return $duplicates;
+    }
+
+    private function hasWarnings(): bool
+    {
+        $entries = query_log::entries();
+        if ($entries === []) {
+            return false;
+        }
+
+        foreach (array_count_values(array_column($entries, 'sql')) as $count) {
+            if ($count >= self::FREQUENT_THRESHOLD) {
+                return true;
+            }
+        }
+
+        foreach ($entries as $entry) {
+            if ($entry['time'] * 1000 >= self::MODERATE_MS) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private function style(float $timeMs, int $count): string
+    {
+        if ($timeMs >= self::SLOW_MS) {
+            return 'background:#ffcccc';
+        }
+        if ($count >= self::FREQUENT_THRESHOLD) {
+            return 'background:#e0d4f7';
+        }
+        if ($timeMs >= self::MODERATE_MS) {
+            return 'background:#fff3cd';
+        }
+
+        return '';
+    }
+}

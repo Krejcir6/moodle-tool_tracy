@@ -69,6 +69,12 @@ function tool_tracy_after_config(): void {
         if ($hijacked !== []) {
             \Tracy\Debugger::getBar()->addPanel(new \tool_tracy\handler_check_panel($hijacked));
         }
+
+        $bar = \Tracy\Debugger::getBar();
+        $bar->addPanel(new \tool_tracy\routing_panel());
+        $bar->addPanel(new \tool_tracy\user_panel());
+        $bar->addPanel(new \tool_tracy\session_panel());
+        $bar->addPanel(new \tool_tracy\database_panel());
     }
 
     if (!\Tracy\Debugger::$productionMode) {

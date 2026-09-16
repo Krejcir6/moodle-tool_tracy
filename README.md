@@ -133,13 +133,67 @@ difference the low-level path is meant to have is *earlier* bluescreen
 coverage (bootstrap-time crashes); the eventual scrubbing coverage itself
 converges to the same thing either way.
 
+## Debug bar panels
+
+- **Routing** (`routing_panel`) — method/URL (from `$_SERVER`, not
+  `$PAGE->url`), page type/layout/heading/context/course. Sensitive-looking
+  query params (`sesskey`, ...) are masked with the same `scrubber`.
+- **User** (`user_panel`) — a full scrubbed dump of `$USER`, not a
+  hand-picked field list (see "Sensitive data" above for why that pattern
+  is preferred), plus `isloggedin()`/`isguestuser()`/`is_siteadmin()`.
+- **Session** (`session_panel`) — the raw PHP session ID is *never* shown,
+  hardcoded regardless of the scrubber (leaking it is equivalent to
+  leaking an auth cookie); `$SESSION` contents are scrubbed the same way
+  as `$USER`, with `sesskey` explicitly excluded on top.
+- **Database** (`database_panel`) — see below.
+
+### Database panel
+
+Aggregate counters (reads/writes/total time, via `$DB->perf_get_reads()`
+etc.) are always shown — public Moodle API, no core changes needed.
+
+The full per-query table (SQL + scrubbed params + timing) needs an
+**optional, dev-only core patch**: `dev/moodle_database.patch`, applied to
+your own local Moodle core checkout —
+
+```bash
+patch -p1 < admin/tool/tracy/dev/moodle_database.patch
+# from your Moodle root
+```
+
+Moodle core exposes no public per-query hook (`query_start()`/
+`query_end()`/`query_log()` are all `protected`, and `query_log()` only
+ever writes to the error log — confirmed by reading
+`lib/dml/moodle_database.php`, not assumed). The patch adds two
+`function_exists()`-guarded calls — inert on any site that hasn't applied
+it, so it's safe to leave in a shared dev image. **Two hook points, not
+one:** by the time `query_log()` runs, a query's params have already been
+rewritten from named (`:password`) to positional (`0, 1, ...`) by
+`fix_sql_params()`, which is called earlier in the same request — a plain
+array with no key names left, so the scrubber can no longer match against
+them (confirmed live: a literal `password` param leaked in full when only
+`query_log()` was hooked). `fix_sql_params()` is hooked too, capturing the
+still-named params before that rewrite; `classes/query_log.php` then
+correlates the two by exact SQL text. If a query's params can't be
+correlated (some internal calls bypass `fix_sql_params()` entirely, e.g.
+`moodle_database::export_table_recordset()`), the panel shows
+`(unavailable)` — never the raw, unscrubbable positional array.
+
+Slow queries are highlighted amber (&ge;5ms) or red (&ge;20ms); queries
+whose exact SQL text repeats &ge;5&times; in one request (a classic N+1
+smell) get a dedicated "Duplicate queries" summary showing their
+*combined* time, since any single occurrence can look harmless on its own.
+
 ## Testing
 
-- `tests/bootstrap_test.php`, `tests/scrubber_test.php` — standard PHPUnit:
+- `tests/*_test.php` — standard PHPUnit:
   `vendor/bin/phpunit --testsuite tool_tracy_testsuite` (pointing directly
   at `admin/tool/tracy/tests/` does not work with Moodle's PHPUnit runner).
-  Covers `bootstrap::enable()`'s mode-string mapping, that the debug bar is
-  disabled under CLI, `bootstrap::hijackedHandlers()`, and `scrubber`.
+  `query_log_test.php`/`database_panel_test.php` run every test
+  `@runInSeparateProcess` and match on a unique marker SQL string rather
+  than asserting on `entries()`'s overall shape: this environment's own
+  `config.php` enables the query-logging core patch unconditionally, so
+  real bootstrap queries flow through the exact same static state.
 - `tests/ajax_smoke.sh` — **not** a PHPUnit test, and can't be one: the
   thing it checks (Tracy correctly staying out of a JSON AJAX response) is
   decided by `Tracy\Helpers::isHtmlMode()`, which has a hard `!isCli()`

@@ -43,10 +43,7 @@ if (!function_exists('bdump')) {
      */
     function bdump(mixed $var, ?string $title = null, array $options = []): mixed
     {
-        \Tracy\Debugger::barDump($var, $title, $options + [
-            \Tracy\Dumper::KEYS_TO_HIDE => \Tracy\Debugger::$keysToHide,
-            \Tracy\Dumper::SCRUBBER => \Tracy\Debugger::getBlueScreen()->scrubber,
-        ]);
+        \Tracy\Debugger::barDump($var, $title, $options + \tool_tracy\bootstrap::scrubbedDumpOptions());
 
         return $var;
     }

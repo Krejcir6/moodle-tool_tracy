@@ -54,7 +54,7 @@ final class handler_check_panel implements \Tracy\IBarPanel
         return '<h1>Tracy handlers hijacked</h1>'
             . '<div class="tracy-inner">'
             . '<p>Moodle\'s <code>lib/setup.php</code> re-registered its own '
-            . htmlspecialchars($list, ENT_QUOTES)
+            . $list
             . ' handler(s) (<code>default_exception_handler</code> / '
             . '<code>default_error_handler</code>) after Tracy was enabled.</p>'
             . '<p>PHP only ever has one active handler at a time — there is '
