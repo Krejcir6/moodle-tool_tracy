@@ -25,12 +25,45 @@
 defined('MOODLE_INTERNAL') || die();
 
 /**
- * Moodle calls this once $USER and the session are available, so this is
- * the earliest point at which we can make the debug bar's visibility depend
- * on capabilities rather than just the Tracy production/development mode.
+ * Second, later activation path: if config.php didn't already enable Tracy
+ * (the low-level path, see classes/bootstrap.php), this admin-configured
+ * fallback can still turn it on here, once $USER/session are available.
+ * It won't catch errors from earlier in bootstrap, but needs no file edits.
+ *
+ * This is also the earliest point at which the debug bar's visibility can
+ * depend on capabilities rather than just the Tracy production/development
+ * mode, which is used regardless of which path enabled Tracy.
  */
 function tool_tracy_after_config(): void {
-    if (!class_exists(\Tracy\Debugger::class) || !\Tracy\Debugger::$productionMode) {
+    $alreadyenabled = class_exists(\Tracy\Debugger::class, false);
+
+    if (!$alreadyenabled) {
+        if (empty(get_config('tool_tracy', 'enabled'))) {
+            return;
+        }
+
+        // enable() does its own string-to-constant translation internally —
+        // see classes/bootstrap.php for why callers must not reference
+        // \Tracy\Debugger themselves here.
+        \tool_tracy\bootstrap::enable(
+            get_config('tool_tracy', 'mode') ?: null,
+            get_config('tool_tracy', 'logdirectory') ?: null
+        );
+
+        if (!class_exists(\Tracy\Debugger::class, false)) {
+            // thirdparty/tracy is not vendored; nothing more to do.
+            return;
+        }
+    }
+
+    if (\Tracy\Debugger::$showBar) {
+        $hijacked = \tool_tracy\bootstrap::hijackedHandlers();
+        if ($hijacked !== []) {
+            \Tracy\Debugger::getBar()->addPanel(new \tool_tracy\handler_check_panel($hijacked));
+        }
+    }
+
+    if (!\Tracy\Debugger::$productionMode) {
         return;
     }
 

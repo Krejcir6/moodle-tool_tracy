@@ -25,6 +25,15 @@
 defined('MOODLE_INTERNAL') || die();
 
 $string['pluginname'] = 'Tracy debugger';
+$string['enabled'] = 'Enable Tracy (admin settings)';
+$string['enabled_desc'] = 'Turns on Tracy from these settings once Moodle has fully bootstrapped. Has no effect if config.php already enabled Tracy directly via \\tool_tracy\\bootstrap::enable() — that call always takes priority and is required if you need Tracy to catch errors during Moodle\'s own bootstrap.';
+$string['mode'] = 'Mode';
+$string['mode_desc'] = 'Only used when Tracy is enabled from these settings (see above).';
+$string['mode_detect'] = 'Auto-detect (Tracy decides from the client IP)';
+$string['mode_development'] = 'Development (show the debug bar and full error detail)';
+$string['mode_production'] = 'Production (suppress debug output, log/email errors instead)';
+$string['logdirectory'] = 'Log directory';
+$string['logdirectory_desc'] = 'Absolute path Tracy writes its logs to. Leave empty to disable file logging. Only used when Tracy is enabled from these settings (see above).';
 $string['restricttoadmins'] = 'Restrict debug bar to admins in production mode';
-$string['restricttoadmins_desc'] = 'When Tracy runs in production mode (as decided by MOODLE_TRACY_MODE), only show the debug bar to users with the moodle/site:config capability.';
+$string['restricttoadmins_desc'] = 'When Tracy runs in production mode, only show the debug bar to users with the moodle/site:config capability. Applies regardless of which of the two activation paths enabled Tracy.';
 $string['privacy:metadata'] = 'The Tracy debugger plugin does not store any personal data.';
