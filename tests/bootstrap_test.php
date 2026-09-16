@@ -86,7 +86,8 @@ class bootstrap_test extends \basic_testcase {
      * @runInSeparateProcess
      */
     public function test_hijackedhandlers_does_not_disturb_current_handlers(): void {
-        $marker = static fn () => 'still me';
+        $marker = static function (\Throwable $e): void {
+        };
         set_exception_handler($marker);
 
         bootstrap::hijackedHandlers();

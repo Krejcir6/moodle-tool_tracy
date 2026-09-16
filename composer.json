@@ -1,0 +1,12 @@
+{
+    "name": "krejcir6/moodle-tool_tracy",
+    "description": "Dev-tooling dependencies for tool_tracy. Not loaded by Moodle at runtime.",
+    "type": "project",
+    "license": "GPL-3.0-or-later",
+    "require-dev": {
+        "phpstan/phpstan": "^1.11"
+    },
+    "config": {
+        "sort-packages": true
+    }
+}

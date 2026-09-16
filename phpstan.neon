@@ -1,0 +1,46 @@
+parameters:
+    level: 5
+    paths:
+        - classes
+        - tests
+        - lib.php
+        - settings.php
+        - bdump.php
+        - query_log.php
+        - version.php
+        - db/events.php
+    excludePaths:
+        - thirdparty/*
+    # Moodle core classes/functions aren't installed as a dependency here —
+    # this plugin only has real meaning symlinked/installed inside an actual
+    # Moodle checkout (see README.md's "Static analysis" section), so PHPStan
+    # is pointed at the surrounding install's lib/ for moodle_database,
+    # context, moodle_url, the event system, PHPUnit base classes, etc.
+    # Relative path assumes the usual <moodleroot>/admin/tool/tracy layout.
+    scanDirectories:
+        - %currentWorkingDirectory%/lib
+        - %currentWorkingDirectory%/privacy
+    bootstrapFiles:
+        - %currentWorkingDirectory%/admin/tool/tracy/thirdparty/tracy/src/tracy.php
+    treatPhpDocTypesAsCertain: false
+    ignoreErrors:
+        # Moodle's own convention: version.php/settings.php are require()'d
+        # by admin code that defines these first — not actually undefined,
+        # just invisible to a per-file static analysis of the plugin alone.
+        -
+            message: '#Variable \$plugin might not be defined#'
+            path: version.php
+        -
+            message: '#Variable \$(hassiteconfig|ADMIN) might not be defined#'
+            path: settings.php
+        # Legacy class name Moodle creates via a runtime class_alias() call
+        # in its custom autoloader (core_component::classloader) rather
+        # than a class_alias() PHPStan could see in a scannable file — the
+        # real class is \core\context\system, under lib/classes/context/.
+        -
+            message: '#unknown class context_system#'
+        # default_exception_handler()'s own $ex parameter has no type hint
+        # in Moodle core (lib/setuplib.php) — nothing to fix on our side.
+        -
+            message: '#set_exception_handler expects .*, .default_exception#'
+            path: tests/bootstrap_test.php

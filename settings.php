@@ -43,7 +43,7 @@ if ($hassiteconfig) {
         'tool_tracy/enabled',
         get_string('enabled', 'tool_tracy'),
         get_string('enabled_desc', 'tool_tracy'),
-        0
+        '0'
     ));
 
     $settings->add(new admin_setting_configselect(
@@ -70,6 +70,6 @@ if ($hassiteconfig) {
         'tool_tracy/restricttoadmins',
         get_string('restricttoadmins', 'tool_tracy'),
         get_string('restricttoadmins_desc', 'tool_tracy'),
-        1
+        '1'
     ));
 }

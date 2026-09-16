@@ -24,13 +24,18 @@
  * query_log.php and README.md's "Database panel" section. Without it, this
  * panel still shows the aggregate numbers and explains how to get the rest.
  *
+ * Deliberately SQL text only, no params: query param *values* would need
+ * masking, which needed a second core-patch hook point to do safely (see
+ * git history/ROADMAP.md) — more complexity than it was worth for what
+ * this panel is for. The SQL text itself only ever contains placeholder
+ * syntax (`:password`, `?`), never literal values, so there's nothing to
+ * mask in the first place.
+ *
  * The per-query table flags two things, colour-coded, no core patch needed
  * beyond what's already required for the table itself:
  * - slow queries (time thresholds below);
  * - frequent/repeated queries (the same SQL text executed many times in one
- *   request — the classic N+1 smell). Counted purely by exact SQL text, not
- *   params, since that's what N+1 looks like: one query shape, run once per
- *   row of some outer loop.
+ *   request — the classic N+1 smell). Counted purely by exact SQL text.
  *
  * @package    tool_tracy
  * @copyright  2026 Radek Krejci
@@ -132,25 +137,15 @@ final class database_panel implements \Tracy\IBarPanel
             }
 
             $html .= '<h2>All queries</h2>';
-            $html .= '<table><tr><th>Time</th><th>&times;</th><th>SQL</th><th>Params</th></tr>';
+            $html .= '<table><tr><th>Time</th><th>&times;</th><th>SQL</th></tr>';
             foreach ($entries as $entry) {
                 $timeMs = $entry['time'] * 1000;
                 $count = $counts[$entry['sql']] ?? 1;
-
-                // null here specifically means correlation with the named
-                // params captured by fix_sql_params() failed for this
-                // query (see classes/query_log.php) — never fall back to
-                // showing the raw positional array in that case, since it
-                // can no longer be matched against the scrubber by key.
-                $params = $entry['params'] === null
-                    ? '<em>(unavailable — see classes/query_log.php)</em>'
-                    : \Tracy\Dumper::toHtml($entry['params'], bootstrap::scrubbedDumpOptions());
 
                 $html .= '<tr style="' . $this->style($timeMs, $count) . '">'
                     . '<td>' . htmlspecialchars(sprintf('%.2f ms', $timeMs), ENT_QUOTES) . '</td>'
                     . '<td>' . htmlspecialchars((string) $count, ENT_QUOTES) . '</td>'
                     . '<td><code>' . htmlspecialchars((string) $entry['sql'], ENT_QUOTES) . '</code></td>'
-                    . '<td>' . $params . '</td>'
                     . '</tr>';
             }
             $html .= '</table>';
@@ -168,7 +163,7 @@ final class database_panel implements \Tracy\IBarPanel
      * matters for an N+1 smell, since any single occurrence can look
      * individually harmless. Sorted most expensive first.
      *
-     * @param array<int, array{sql: ?string, params: ?array, time: float, error: mixed}> $entries
+     * @param array<int, array{sql: ?string, time: float, error: mixed}> $entries
      * @return array<string, array{count: int, time: float}>
      */
     private function duplicateSummary(array $entries): array

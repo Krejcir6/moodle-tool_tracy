@@ -75,6 +75,7 @@ function tool_tracy_after_config(): void {
         $bar->addPanel(new \tool_tracy\user_panel());
         $bar->addPanel(new \tool_tracy\session_panel());
         $bar->addPanel(new \tool_tracy\database_panel());
+        $bar->addPanel(new \tool_tracy\events_panel());
     }
 
     if (!\Tracy\Debugger::$productionMode) {

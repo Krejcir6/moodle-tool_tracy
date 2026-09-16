@@ -15,40 +15,35 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Globals tool_tracy_capture_query()/tool_tracy_log_query() — the two
- * targets of an OPTIONAL, dev-only core patch (dev/moodle_database.patch)
- * to lib/dml/moodle_database.php's fix_sql_params() and query_log().
+ * Global tool_tracy_log_query() — the target of an OPTIONAL, dev-only core
+ * patch (dev/moodle_database.patch) to lib/dml/moodle_database.php's
+ * query_log().
  *
  * Moodle core does not expose a public per-query hook: query_start()/
  * query_end()/query_log() are all protected, and query_log() itself only
  * ever writes to the error log, never to anything a plugin can read back
- * (confirmed by reading lib/dml/moodle_database.php — see ROADMAP.md). Two
- * hooks, not one: by the time query_log() runs, a query's params have
- * already been rewritten from named to positional by fix_sql_params(), so
- * they can no longer be matched against the scrubber by key — see
- * classes/query_log.php for the full reasoning and how the two are
- * correlated back together safely.
+ * (confirmed by reading lib/dml/moodle_database.php — see ROADMAP.md).
  *
- * Both are guarded by function_exists() exactly like bdump.php's
- * replacement functions: on any site that hasn't applied the patch, the
- * checks in core are false and moodle_database behaves exactly as core
- * ships it.
+ * Logs SQL text and timing only, deliberately no params: query param
+ * *values* would need masking (an earlier version of this file did that,
+ * with a second hook in fix_sql_params() to catch them before they lose
+ * their names — see git history/ROADMAP.md), which turned out to be more
+ * complexity than it was worth for what this panel is for. The SQL text
+ * itself only ever contains placeholder syntax (`:password`, `?`), never
+ * literal values, so there's nothing to mask here in the first place.
+ *
+ * Guarded by function_exists() exactly like bdump.php's replacement
+ * functions: on any site that hasn't applied the patch, the check in core
+ * is false and moodle_database behaves exactly as core ships it.
  *
  * @package    tool_tracy
  * @copyright  2026 Radek Krejci
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-if (!function_exists('tool_tracy_capture_query')) {
-    function tool_tracy_capture_query(?string $sql, ?array $params): void
-    {
-        \tool_tracy\query_log::capture($sql, $params);
-    }
-}
-
 if (!function_exists('tool_tracy_log_query')) {
-    function tool_tracy_log_query(?string $sql, ?array $params, float $time, mixed $error = false): void
+    function tool_tracy_log_query(?string $sql, float $time, mixed $error = false): void
     {
-        \tool_tracy\query_log::commit($sql, $params, $time, $error);
+        \tool_tracy\query_log::add($sql, $time, $error);
     }
 }

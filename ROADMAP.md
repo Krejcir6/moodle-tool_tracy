@@ -102,24 +102,71 @@ Moodle development, not just crash reporting.
       `query_log()` only ever writes to the error log. Implemented anyway,
       as an opt-in dev-only core patch (`dev/moodle_database.patch`),
       guarded by `function_exists()` so it's inert on any site that hasn't
-      applied it. **Two hook points, not one**, discovered live: by the
-      time `query_log()` runs, a query's params have already been
-      rewritten from named (`:password`) to positional (`0, 1, ...`) by
-      `fix_sql_params()` — tested with a literal `password` param and
-      confirmed it leaked in full when only hooking `query_log()`.
-      `fix_sql_params()` is hooked too, capturing the still-named params
-      before that rewrite; `classes/query_log.php` correlates the two back
-      together by exact SQL text (FIFO per distinct string — safe even for
-      the same query repeated with different params, since DB access is
-      synchronous). If correlation ever fails for a query (some internal
-      calls bypass `fix_sql_params()` entirely), params are shown as
-      `(unavailable)`, never as the unscrubbable raw positional array.
+      applied it.
+      - v1 logged params too, which needed a second hook point in
+        `fix_sql_params()` (params are already rewritten positional —
+        key names gone — by the time `query_log()` runs, confirmed live
+        with a literal `password` param that leaked in full when only
+        `query_log()` was hooked) plus FIFO correlation logic to match the
+        two hooks' data back together by exact SQL text.
+      - Simplified to **SQL text + timing only, single hook, no params
+        column** — simpler than the params version needed to be, since
+        params were the *only* reason two hook points and correlation
+        existed. SQL text itself is just placeholder syntax
+        (`:password`, `?`), so there's nothing left to protect.
+      - The patch's insertion point (`query_log()`, right after
+        `$time = $this->query_time();`) has been unchanged in core since
+        2014 per `git blame` — good evidence for cross-version
+        portability, though only actually tested against this repo's
+        4.3dev checkout. README.md documents a manual one-line fallback
+        for versions where `patch -p1` doesn't apply cleanly.
 - [x] SVG icons on every panel's tab (including the Phase 1
       `handler_check_panel`), colour-shifting to red on `database_panel`'s
       icon when a slow/frequent query is present.
+- [x] **Events panel** (`events_panel`) — a wildcard event observer
+      (`db/events.php`, `'eventname' => '*'`), the same first-class,
+      documented mechanism `logstore_standard` uses to catch every event;
+      no core patch needed here, unlike the database panel. Two things,
+      not just "an event fired":
+      - Which events actually triggered, grouped by event class (not
+        instance) with a count, same pattern as the database panel's
+        duplicate-query summary. `other`/event data goes through
+        `bootstrap::scrubbedDumpOptions()`.
+      - For each triggered event class, which observers Moodle would
+        invoke for it — `\core\event\manager::get_all_observers()` is
+        public API; matching an event to the observers that apply to it
+        (including its whole parent-class chain, since `'*'` registers
+        for `\core\event\base`) needed reimplementing the same trivial
+        `get_class()`/`get_parent_class()` walk `manager::get_observing_classes()`
+        does internally (that one method is `protected`) — confirmed live
+        against a real triggered event that this correctly lists
+        third-party observers (`tool_log`, `tool_monitor`), not just our
+        own.
+      - `classes/observer.php` (the callback Moodle actually invokes on
+        *every* event, on *every* request, once the plugin is installed —
+        regardless of whether Tracy is enabled) early-returns if Tracy
+        isn't active, same no-op-by-default principle as the rest of the
+        plugin.
+      - Adding `db/events.php` to an already-installed plugin needed a
+        version bump + `admin/cli/upgrade.php` run for Moodle to notice
+        and register the new observer.
 
-Next up: an **events panel** (Moodle event observers/triggered events for
-the request).
+## Tooling
+
+- [x] **PHPStan** (`phpstan.neon`, level 5, `composer.json`/dev-only). Has
+      to run from within a real Moodle checkout — `scanDirectories` points
+      at the surrounding install's `lib/`/`privacy` for Moodle core
+      symbols (`moodle_database`, `context`, the event system, PHPUnit
+      base classes, ...), since this repo alone has no Moodle core to
+      check against. Tracy needed `bootstrapFiles` (actually `require`s
+      `thirdparty/tracy/src/tracy.php`), not `scanDirectories` — passive
+      directory scanning silently failed to make PHPStan aware of
+      `Tracy\Debugger`/`Tracy\Dumper`/`Tracy\IBarPanel`, confirmed by
+      testing both; not fully understood why, `bootstrapFiles` just
+      reliably worked instead. First real run caught one genuine (minor)
+      bug: `admin_setting_configcheckbox`'s `$defaultsetting` is
+      documented `string`, `settings.php` was passing `1`/`0` (int).
+      `[OK] No errors` after fixes — see README.md's "Static analysis".
 
 ## Explicitly out of scope for now
 

@@ -40,7 +40,7 @@ class database_panel_test extends \basic_testcase {
     public function test_duplicate_queries_are_summarised_with_combined_time(): void {
         $marker = 'SELECT TRACY_TEST_MARKER_DUP ' . uniqid();
         for ($i = 0; $i < 6; $i++) {
-            query_log::commit($marker, [], 0.01);
+            query_log::add($marker, 0.01);
         }
 
         $html = (new database_panel())->getPanel();
@@ -60,7 +60,7 @@ class database_panel_test extends \basic_testcase {
      */
     public function test_query_run_below_threshold_is_not_flagged_as_duplicate(): void {
         $marker = 'SELECT TRACY_TEST_MARKER_ONCE ' . uniqid();
-        query_log::commit($marker, [], 0.01);
+        query_log::add($marker, 0.01);
 
         $html = (new database_panel())->getPanel();
 
@@ -70,14 +70,11 @@ class database_panel_test extends \basic_testcase {
     /**
      * @runInSeparateProcess
      */
-    public function test_unavailable_params_are_never_rendered_as_raw_positional_array(): void {
-        $marker = 'SELECT TRACY_TEST_MARKER_NOPARAMS ' . uniqid();
-        // commit() without a matching capture(): params must come back null.
-        query_log::commit($marker, ['this', 'should', 'never', 'render'], 0.01);
+    public function test_no_params_column_in_the_output(): void {
+        query_log::add('SELECT TRACY_TEST_MARKER ' . uniqid(), 0.01);
 
         $html = (new database_panel())->getPanel();
 
-        $this->assertStringNotContainsString('this', $html);
-        $this->assertStringContainsString('unavailable', $html);
+        $this->assertStringNotContainsString('<th>Params</th>', $html);
     }
 }

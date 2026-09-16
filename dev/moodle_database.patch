@@ -1,5 +1,5 @@
 diff --git a/lib/dml/moodle_database.php b/lib/dml/moodle_database.php
-index aba44002cbe..b08b9a541c6 100644
+index aba44002cbe..6f776109514 100644
 --- a/lib/dml/moodle_database.php
 +++ b/lib/dml/moodle_database.php
 @@ -519,6 +519,14 @@ abstract class moodle_database {
@@ -11,25 +11,9 @@ index aba44002cbe..b08b9a541c6 100644
 +        // Guarded, so this is a no-op unless that plugin defines the
 +        // function — inert on any site that hasn't opted in.
 +        if (function_exists('tool_tracy_log_query')) {
-+            tool_tracy_log_query($this->last_sql, $this->last_params, $time, $error);
++            tool_tracy_log_query($this->last_sql, $time, $error);
 +        }
 +
          // Will be shown or not depending on MDL_PERF values rather than in dboptions['log*].
          $this->queriestime = $this->queriestime + $time;
  
-@@ -915,6 +923,15 @@ abstract class moodle_database {
-         // Optionally add debug trace to sql as a comment.
-         $sql = $this->add_sql_debugging($sql);
- 
-+        // tool_tracy (optional, dev-only): $params here still has its
-+        // original names (e.g. ':password') — captured before the
-+        // named->positional rewrite below, so a debug bar panel can
-+        // actually mask sensitive ones by key. See
-+        // <moodleroot>/admin/tool/tracy/dev/moodle_database.patch.
-+        if (function_exists('tool_tracy_capture_query')) {
-+            tool_tracy_capture_query($sql, $params);
-+        }
-+
-         $count = 0;
- 
-         if ($named_count) {

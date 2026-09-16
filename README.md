@@ -146,43 +146,94 @@ converges to the same thing either way.
   leaking an auth cookie); `$SESSION` contents are scrubbed the same way
   as `$USER`, with `sesskey` explicitly excluded on top.
 - **Database** (`database_panel`) — see below.
+- **Events** (`events_panel`) — see below.
 
 ### Database panel
 
 Aggregate counters (reads/writes/total time, via `$DB->perf_get_reads()`
 etc.) are always shown — public Moodle API, no core changes needed.
 
-The full per-query table (SQL + scrubbed params + timing) needs an
-**optional, dev-only core patch**: `dev/moodle_database.patch`, applied to
-your own local Moodle core checkout —
+The full per-query table (SQL text + timing) needs an **optional, dev-only
+core patch**: `dev/moodle_database.patch`, applied to your own local
+Moodle core checkout —
 
 ```bash
 patch -p1 < admin/tool/tracy/dev/moodle_database.patch
 # from your Moodle root
 ```
 
+If `patch` doesn't apply cleanly (see "Version compatibility" below), add
+this by hand inside `lib/dml/moodle_database.php`'s `query_log()`, right
+after the `$time = $this->query_time();` line:
+
+```php
+if (function_exists('tool_tracy_log_query')) {
+    tool_tracy_log_query($this->last_sql, $time, $error);
+}
+```
+
 Moodle core exposes no public per-query hook (`query_start()`/
 `query_end()`/`query_log()` are all `protected`, and `query_log()` only
 ever writes to the error log — confirmed by reading
-`lib/dml/moodle_database.php`, not assumed). The patch adds two
-`function_exists()`-guarded calls — inert on any site that hasn't applied
-it, so it's safe to leave in a shared dev image. **Two hook points, not
-one:** by the time `query_log()` runs, a query's params have already been
-rewritten from named (`:password`) to positional (`0, 1, ...`) by
-`fix_sql_params()`, which is called earlier in the same request — a plain
-array with no key names left, so the scrubber can no longer match against
-them (confirmed live: a literal `password` param leaked in full when only
-`query_log()` was hooked). `fix_sql_params()` is hooked too, capturing the
-still-named params before that rewrite; `classes/query_log.php` then
-correlates the two by exact SQL text. If a query's params can't be
-correlated (some internal calls bypass `fix_sql_params()` entirely, e.g.
-`moodle_database::export_table_recordset()`), the panel shows
-`(unavailable)` — never the raw, unscrubbable positional array.
+`lib/dml/moodle_database.php`, not assumed). The patch adds one
+`function_exists()`-guarded call — inert on any site that hasn't applied
+it, so it's safe to leave in a shared dev image.
+
+Deliberately **SQL text only, no query params**. An earlier version of
+this patch also captured param values (needing a second hook point in
+`fix_sql_params()` to catch them before Moodle rewrites them positional,
+plus scrubbing, plus correlation logic to match the two back together) —
+more complexity than it was worth. The SQL text itself only ever contains
+placeholder syntax (`:password`, `?`), never literal values, so there was
+nothing to protect in the first place once params were dropped from the
+picture; see git history/ROADMAP.md if you want the full reasoning.
 
 Slow queries are highlighted amber (&ge;5ms) or red (&ge;20ms); queries
 whose exact SQL text repeats &ge;5&times; in one request (a classic N+1
 smell) get a dedicated "Duplicate queries" summary showing their
 *combined* time, since any single occurrence can look harmless on its own.
+
+**Version compatibility.** The patch's insertion point — right after
+`$time = $this->query_time();` in `query_log()` — has been unchanged in
+Moodle core since 2014 (`git blame`), so it should apply cleanly across a
+wide range of versions. That's evidence of stability, not a guarantee for
+every version: this has only actually been tested against the 4.3dev
+checkout in this repo's history. If `patch -p1` reports a failed hunk,
+use the manual one-liner above instead.
+
+### Events panel
+
+Registers a wildcard event observer in `db/events.php`
+(`'eventname' => '*'`) — the same first-class, documented mechanism
+`logstore_standard` uses to catch every event. Unlike the database panel,
+**no core patch needed**.
+
+Two things, not just "an event fired":
+
+- Which events actually triggered, grouped by event class with a count
+  (same pattern as the database panel's duplicate-query summary) — event
+  data (including `other`) is scrubbed the same way as everywhere else.
+- For each triggered event class, the observers Moodle would actually
+  invoke for it — `\core\event\manager::get_all_observers()` is public
+  API, but matching an event to *which* of those apply needs its whole
+  parent-class chain too (a `'*'` registration becomes
+  `\core\event\base` internally, so an event several levels down still
+  matches it). That walk is done by `manager::get_observing_classes()`,
+  which is `protected` — `events_panel::observersFor()` reimplements the
+  same handful of `get_class()`/`get_parent_class()` lines rather than
+  reaching into a private internal. Confirmed live against a real
+  triggered event that this lists genuine third-party observers
+  (`tool_log`, `tool_monitor`), not just this plugin's own.
+
+`classes/observer.php` — the callback Moodle invokes on *every* event on
+*every* request once the plugin is installed, regardless of whether Tracy
+is enabled — early-returns if Tracy isn't active, the same no-op-by-default
+principle as the rest of the plugin.
+
+Adding `db/events.php` to an already-installed copy of this plugin needs a
+version bump and `admin/cli/upgrade.php` (or the admin *Notifications*
+page) for Moodle to notice and register the new observer — it won't pick
+it up from the file alone.
 
 ## Testing
 
@@ -200,6 +251,29 @@ smell) get a dedicated "Duplicate queries" summary showing their
   condition and always returns `false` under PHPUnit's CLI SAPI regardless
   of what a test fakes. It has to be a real HTTP request against a running
   site: `MOODLE_URL=http://localhost:8000 tests/ajax_smoke.sh`.
+
+## Static analysis
+
+```bash
+composer install   # once, installs phpstan/phpstan as a dev dependency
+                    # (via Docker: docker run --rm -v "$PWD:/app" -w /app composer:2 install)
+
+# from the Moodle root, with this plugin at the usual admin/tool/tracy path:
+php admin/tool/tracy/vendor/bin/phpstan analyse --memory-limit=1G \
+    -c admin/tool/tracy/phpstan.neon
+```
+
+Has to run from a real Moodle checkout (`%currentWorkingDirectory%/lib` and
+`.../privacy` in `phpstan.neon`'s `scanDirectories`) — this repo on its own
+has no Moodle core to check against, so `moodle_database`, `context`,
+`moodle_url`, the event system, PHPUnit base classes etc. would all show up
+as "unknown class" otherwise. Tracy itself is loaded via `bootstrapFiles`
+(requiring `thirdparty/tracy/src/tracy.php` for real, rather than passively
+scanning the directory, which — unexplained why, but confirmed by testing
+both — didn't make PHPStan aware of `Tracy\Debugger`/`Tracy\Dumper`/
+`Tracy\IBarPanel` the way `scanDirectories` did for Moodle's own `lib/`).
+`--memory-limit=1G`: scanning all of `lib/` needs more than PHP's 128M
+default.
 
 ## Known limitations (skeleton, not production-hardened)
 
