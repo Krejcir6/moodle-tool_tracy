@@ -18,10 +18,34 @@ default, not an opt-in.
       log line if it can be a bluescreen instead.
 - [x] Handler-hijack detection + diagnostic panel: report, don't silently
       fight Moodle for control of `set_exception_handler`/`set_error_handler`.
-- [x] Basic automated test coverage: `tests/bootstrap_test.php` (PHPUnit —
-      mode-string mapping, CLI disables the bar, `hijackedHandlers()`) and
-      `tests/ajax_smoke.sh` (real-HTTP check that Tracy stays out of JSON
-      AJAX responses — not possible as a PHPUnit test, see README.md).
+- [x] `tool_tracy\scrubber`: masks sensitive-looking values (`$CFG->dbpass`
+      and friends, which `global $CFG;` puts in every stack trace) before
+      Tracy can render them, at its strictest level by default — see
+      README.md's "Sensitive data" section. At strict level, *every* actual
+      $CFG property is hidden unconditionally (not just the ones a pattern
+      guesses are sensitive) — `bootstrap::enable()` passes $CFG's real key
+      list in. `LEVEL_MODERATE` exists in the
+      class for later, but nothing exposes a way to switch to it yet.
+- [x] `bootstrap::refreshCfgScrubbing()`: the low-level path's `$CFG`
+      snapshot at `enable()` time is incomplete (~30 keys vs. ~620 once
+      `lib/setup.php` finishes) — `tool_tracy_after_config()` now re-derives
+      it once $CFG is actually complete, on every request, regardless of
+      which path enabled Tracy. Both paths converge to the same scrubbing
+      coverage; the only remaining difference is *when* Tracy starts
+      catching errors, not how well it hides secrets once it has.
+- [x] `bdump.php`: found live that `bdump($CFG)` rendered `$CFG->dbpass` in
+      full — `Tracy\Debugger::barDump()` (what `bdump()` calls) applies
+      neither `$keysToHide` nor a scrubber at all, unlike `dump()`/the
+      bluescreen. Replaces Tracy's own `bdump()` (same
+      `function_exists()` guard trick Tracy itself uses) with one that
+      does. `bdump_unsafe()` is the explicit, clearly-labelled opt-out for
+      when a real value is genuinely needed.
+- [x] Basic automated test coverage: `tests/bootstrap_test.php` +
+      `tests/scrubber_test.php` + `tests/bdump_test.php` (PHPUnit —
+      mode-string mapping, CLI disables the bar, `hijackedHandlers()`,
+      scrubber pattern/exact-match behaviour, `bdump()`/`bdump_unsafe()`)
+      and `tests/ajax_smoke.sh` (real-HTTP check that Tracy stays out of
+      JSON AJAX responses — not possible as a PHPUnit test, see README.md).
 - [ ] `handler_check_panel` rendering test (getTab()/getPanel() output).
 - [ ] Explicit check: installing this plugin on an already-live site with no
       `config.php` changes and default settings must be a complete no-op

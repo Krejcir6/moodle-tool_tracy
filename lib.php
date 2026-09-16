@@ -56,6 +56,14 @@ function tool_tracy_after_config(): void {
         }
     }
 
+    // $CFG is fully populated by now (initialise_cfg() has already loaded
+    // everything from mdl_config), unlike when the low-level path called
+    // enable() from config.php — refresh scrubbing against the real, full
+    // $CFG so both activation paths converge to the same protection for
+    // everything that happens from here on, which is virtually the entire
+    // request. See bootstrap::refreshCfgScrubbing().
+    \tool_tracy\bootstrap::refreshCfgScrubbing();
+
     if (\Tracy\Debugger::$showBar) {
         $hijacked = \tool_tracy\bootstrap::hijackedHandlers();
         if ($hijacked !== []) {

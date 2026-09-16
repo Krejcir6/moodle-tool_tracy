@@ -118,4 +118,81 @@ class bootstrap_test extends \basic_testcase {
 
         $this->assertSame([], bootstrap::hijackedHandlers());
     }
+
+    /**
+     * "Absolutely nothing may leak": enable() must hide every actual $CFG
+     * property, not just the ones scrubber's pattern happens to guess are
+     * sensitive — see classes/scrubber.php's $extraExactKeys.
+     *
+     * @runInSeparateProcess
+     */
+    public function test_enable_hides_every_actual_cfg_key(): void {
+        global $CFG;
+        $this->assertTrue(property_exists($CFG, 'wwwroot'), 'sanity check: a real $CFG is available in this test');
+
+        bootstrap::enable('development');
+
+        $scrubber = \Tracy\Debugger::getBlueScreen()->scrubber;
+        $this->assertNotNull($scrubber, 'enable() must install a BlueScreen scrubber');
+        $this->assertTrue(
+            $scrubber('wwwroot', $CFG->wwwroot),
+            'wwwroot does not look sensitive by name, but must be hidden because it is a real $CFG key'
+        );
+
+        $this->assertContains('wwwroot', array_map('strtolower', \Tracy\Debugger::$keysToHide));
+    }
+
+    /**
+     * Regression test: at the point config.php calls enable() (the
+     * low-level path), $CFG only has the ~30 properties config.php itself
+     * sets — everything lib/setup.php's initialise_cfg() later loads from
+     * mdl_config (including e.g. siteidentifier) doesn't exist yet, so
+     * enable() alone cannot know about it. refreshCfgScrubbing(), called
+     * again once $CFG is actually complete (tool_tracy_after_config()
+     * does this for every request, regardless of which path enabled
+     * Tracy), is what closes that gap.
+     *
+     * @runInSeparateProcess
+     */
+    public function test_refreshcfgscrubbing_covers_keys_added_to_cfg_after_enable(): void {
+        global $CFG;
+
+        bootstrap::enable('development'); // takes its $CFG snapshot now, before the key below exists
+
+        // Deliberately does not match scrubber's sensitive-looking-name
+        // pattern (no "pass"/"secret"/"token"/etc substring) — this test is
+        // specifically about the $CFG-exact-key mechanism, not the pattern.
+        $CFG->tracy_test_late_marker = 'should-not-leak';
+
+        $scrubberbefore = \Tracy\Debugger::getBlueScreen()->scrubber;
+        $this->assertFalse(
+            $scrubberbefore('tracy_test_late_marker', 'x'),
+            'sanity check: enable() could not have known about a key added after it ran'
+        );
+
+        bootstrap::refreshCfgScrubbing();
+
+        $scrubberafter = \Tracy\Debugger::getBlueScreen()->scrubber;
+        $this->assertTrue(
+            $scrubberafter('tracy_test_late_marker', 'x'),
+            'a $CFG key that only existed after enable() ran must be covered once refreshed'
+        );
+
+        unset($CFG->tracy_test_late_marker);
+    }
+
+    /**
+     * Not "Tracy was never enabled" (this site's own config.php always
+     * enables it via the low-level path, so that state is unreachable
+     * here) — just that the call is always safe regardless of Tracy's
+     * enabled state, since callers (lib.php) can't know that in advance.
+     *
+     * @runInSeparateProcess
+     */
+    public function test_refreshcfgscrubbing_does_not_throw_regardless_of_enabled_state(): void {
+        bootstrap::refreshCfgScrubbing();
+        bootstrap::refreshCfgScrubbing();
+
+        $this->addToAssertionCount(1); // reaching this line without a fatal is the assertion
+    }
 }

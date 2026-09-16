@@ -77,12 +77,69 @@ file edits.
 
 3. Visit the site — the debug bar should appear in the corner.
 
+## Sensitive data
+
+`bootstrap::enable()` always wires a [`tool_tracy\scrubber`](classes/scrubber.php)
+into Tracy, at its strictest level by default — safety is the default, not
+an opt-in. This matters because Moodle's `global $CFG;` convention means
+`$CFG` (DB password, SMTP password, various API secrets, ...) shows up as a
+local variable in the stack trace of almost any exception.
+
+A regex over key names is still just a guess, so at strict level
+`enable()` also reads the **real, current `$CFG` object** and passes every
+one of its actual property names into the scrubber as an unconditional
+exact-match list. `$CFG->wwwroot` gets hidden too, even though "wwwroot"
+doesn't look sensitive — it's hidden because it's a real `$CFG` key, not
+because of what it's named. Two, structurally different Tracy mechanisms
+need feeding, since neither alone covers everything:
+
+- `Tracy\BlueScreen::$scrubber` — a pattern-based callable, covers the
+  bluescreen (stack frame locals, `$_SERVER`/`$_ENV`, ...). This is the one
+  that protects `$CFG->dbpass` etc.
+- `Tracy\Debugger::$keysToHide` — an *exact*-match-only array that
+  `Debugger::dump()`/`dumpe()` (ad-hoc debug calls a developer writes in
+  code) respect; it does not accept a scrubber callable at all.
+
+**`bdump()` needed a third fix.** `Tracy\Debugger::barDump()` — what
+Tracy's own `bdump()` shortcut calls — applies *neither* of the above by
+default; it was found live, the hard way, that `bdump($CFG)` rendered
+`$CFG->dbpass` in full, in plain text, in the bar. [`bdump.php`](bdump.php)
+replaces Tracy's global `bdump()` with one that explicitly forwards both
+`$keysToHide` and the current scrubber — Tracy's own `functions.php`
+guards its definition with `if (!function_exists('bdump'))`, so as long as
+`bdump.php` is required before the Tracy library itself (see
+`classes/bootstrap.php`), ours wins.
+
+`bdump.php` also defines **`bdump_unsafe()`** — a deliberate, explicitly-named
+escape hatch identical to Tracy's own unprotected `barDump()` (nothing
+masked at all), for the rare case a developer genuinely needs to see a
+real value. Its bar panel title always gets a visible "⚠ UNSAFE" prefix so
+its output can never be mistaken for `bdump()`'s.
+
+`scrubber::LEVEL_MODERATE` exists for a narrower, less trigger-happy match
+list, but nothing currently exposes a way to switch to it — that's
+deliberate for now, see ROADMAP.md.
+
+**This must give the same protection regardless of which of the two
+activation paths enabled Tracy.** At the point the low-level path calls
+`enable()` from `config.php`, `$CFG` only has the ~30 properties
+`config.php` itself sets — the few hundred more that `lib/setup.php`'s
+`initialise_cfg()` loads from the `mdl_config` table (`siteidentifier` and
+any DB-stored secrets among them) don't exist yet. `bootstrap::refreshCfgScrubbing()`
+re-derives the $CFG key list and is called again from `tool_tracy_after_config()`
+— which Moodle invokes on every request regardless of activation path —
+once bootstrap has actually finished and $CFG is complete. The only
+difference the low-level path is meant to have is *earlier* bluescreen
+coverage (bootstrap-time crashes); the eventual scrubbing coverage itself
+converges to the same thing either way.
+
 ## Testing
 
-- `tests/bootstrap_test.php` — standard PHPUnit (`vendor/bin/phpunit
-  admin/tool/tracy/tests/`). Covers `bootstrap::enable()`'s mode-string
-  mapping, that the debug bar is disabled under CLI, and
-  `bootstrap::hijackedHandlers()`.
+- `tests/bootstrap_test.php`, `tests/scrubber_test.php` — standard PHPUnit:
+  `vendor/bin/phpunit --testsuite tool_tracy_testsuite` (pointing directly
+  at `admin/tool/tracy/tests/` does not work with Moodle's PHPUnit runner).
+  Covers `bootstrap::enable()`'s mode-string mapping, that the debug bar is
+  disabled under CLI, `bootstrap::hijackedHandlers()`, and `scrubber`.
 - `tests/ajax_smoke.sh` — **not** a PHPUnit test, and can't be one: the
   thing it checks (Tracy correctly staying out of a JSON AJAX response) is
   decided by `Tracy\Helpers::isHtmlMode()`, which has a hard `!isCli()`
@@ -98,3 +155,6 @@ file edits.
 - The high-level path only affects `$showBar`/logging/email the way
   `Debugger::enable()` normally does; it does not add any Moodle-specific
   error routing on top.
+- `scrubber`'s strict pattern is broad by design (safety over convenience)
+  but is still just a regex over key names — it can't catch a secret that
+  ends up under an innocuous-looking key.

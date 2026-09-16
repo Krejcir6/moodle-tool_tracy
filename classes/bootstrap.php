@@ -42,11 +42,23 @@
 
 namespace tool_tracy;
 
+// Must run before the Tracy library require below: bdump.php defines a
+// replacement global bdump() guarded by the same function_exists() check
+// Tracy's own functions.php uses, so ours has to be declared first for
+// Tracy to skip its own (unprotected) one — see bdump.php.
+require_once __DIR__ . '/../bdump.php';
+
 $library = __DIR__ . '/../thirdparty/tracy/src/tracy.php';
 if (is_file($library)) {
     require_once $library;
 }
 unset($library);
+
+// Required explicitly, same reasoning as the Tracy library above: when
+// enable() is called from config.php, Moodle's own component autoloader
+// isn't registered yet, so \tool_tracy\scrubber can't be relied on to
+// autoload there the way it would once lib/setup.php has run.
+require_once __DIR__ . '/scrubber.php';
 
 final class bootstrap
 {
@@ -73,6 +85,47 @@ final class bootstrap
         \Tracy\Debugger::enable($mode, $logDirectory);
         \Tracy\Debugger::$strictMode = true;
         \Tracy\Debugger::$showBar = PHP_SAPI !== 'cli';
+
+        // Best effort for right now: from config.php (the low-level path),
+        // $CFG only has the ~30 properties config.php itself sets — the
+        // few hundred more that lib/setup.php's initialise_cfg() loads from
+        // the mdl_config table (siteidentifier and any DB-stored secrets
+        // among them) don't exist yet. refreshCfgScrubbing(), called again
+        // from tool_tracy_after_config() once bootstrap has actually
+        // finished, is what brings this up to full coverage — this call
+        // only matters for masking a genuine crash in the tiny window
+        // between here and there.
+        self::refreshCfgScrubbing();
+    }
+
+    /**
+     * (Re-)applies scrubbing using $CFG exactly as it is *right now*. Safe
+     * to call repeatedly and before $CFG is fully populated (see enable()):
+     * the BlueScreen scrubber closure is fully replaced each call (so it
+     * always reflects the latest $CFG snapshot), and Debugger::$keysToHide
+     * only ever grows (properties $CFG already had stay valid $CFG keys —
+     * initialise_cfg() adds more, it never removes any), so calling this
+     * again later with a fuller $CFG can only add coverage, never lose it.
+     * No-op if Tracy was never enabled at all.
+     */
+    public static function refreshCfgScrubbing(): void
+    {
+        if (!class_exists(\Tracy\Debugger::class, false)) {
+            return;
+        }
+
+        global $CFG;
+        $cfgKeys = isset($CFG) ? array_keys((array) $CFG) : [];
+
+        // Safe by default, not opt-in: mask anything sensitive-looking
+        // before it can ever be rendered — see classes/scrubber.php for why
+        // this needs two different mechanisms to cover both the bluescreen
+        // and ad-hoc bdump() calls.
+        \Tracy\Debugger::getBlueScreen()->scrubber = scrubber::forLevel(scrubber::LEVEL_STRICT, $cfgKeys);
+        \Tracy\Debugger::$keysToHide = array_values(array_unique(array_merge(
+            \Tracy\Debugger::$keysToHide,
+            scrubber::keysToHide(scrubber::LEVEL_STRICT, $cfgKeys)
+        )));
     }
 
     /**
