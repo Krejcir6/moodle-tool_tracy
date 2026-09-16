@@ -1,0 +1,10 @@
+<?xml version="1.0"?>
+<libraries>
+  <library>
+    <location>thirdparty/tracy</location>
+    <name>Tracy</name>
+    <version>2.10.10</version>
+    <license>BSD-3-Clause OR GPL-2.0-or-later OR GPL-3.0-or-later</license>
+    <licenseversion>2.0</licenseversion>
+  </library>
+</libraries>
