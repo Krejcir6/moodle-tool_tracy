@@ -66,6 +66,27 @@ and optional **Log directory**. `tool_tracy_after_config()` applies these
 once `$USER`/session exist — later than the low-level path, but with zero
 file edits.
 
+### Tracy always ends up in control of errors, either way
+
+PHP only ever has one active exception/error handler at a time — no
+stacking. Moodle's own `lib/setup.php` unconditionally calls
+`set_exception_handler('default_exception_handler')`/`set_error_handler('default_error_handler', ...)`
+as part of its own bootstrap, which — if the low-level path enabled Tracy
+earlier, from `config.php` — silently takes the handlers back for the rest
+of the request. `tool_tracy_after_config()` detects this
+(`bootstrap::hijackedHandlers()`) and reclaims them right back
+(`bootstrap::reclaimHandlers()`), unconditionally, regardless of which
+path enabled Tracy. You'll see a purely informational "Tracy handlers
+reclaimed" bar panel when this happens — by the time it's shown, the
+handlers are already Tracy's again.
+
+Before handing off, `reclaimHandlers()` calls
+`bootstrap::abortOpenTransactions()`, which mirrors the one thing worth
+keeping from Moodle's own handler: `default_exception_handler()`'s first
+line is `abort_all_db_transactions()`, because an exception handler must
+never leave a Moodle DB transaction open. It's cheap and safe to always
+call (a no-op if nothing is open).
+
 ## Setup
 
 1. Pick one of the two activation paths above.

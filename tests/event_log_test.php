@@ -19,14 +19,6 @@ namespace tool_tracy;
 /**
  * Tests for \tool_tracy\event_log and \tool_tracy\observer.
  *
- * Like query_log, event_log's state is static/process-global, and this
- * environment's own config.php enables Tracy (and so the wildcard
- * observer) on every request — real Moodle bootstrap/session events flow
- * through the exact same static state. Every test runs
- * @runInSeparateProcess and asserts only on entries it added itself in
- * that isolated process, using \core\event\test_event or unique markers
- * where possible.
- *
  * @package    tool_tracy
  * @copyright  2026 Radek Krejci
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later

@@ -51,9 +51,8 @@ class events_panel_test extends \advanced_testcase {
 
         $html = (new events_panel())->getPanel();
 
-        // tool_log's observer is registered for the '*' wildcard in core,
-        // same as ours — if it shows up, the class-hierarchy walk in
-        // events_panel::observersFor() is finding more than just itself.
+        // tool_log's '*' observer showing up confirms the class-hierarchy
+        // walk finds more than just our own.
         $this->assertStringContainsString('tool_log', $html);
         $this->assertStringContainsString('tool_tracy', $html);
     }

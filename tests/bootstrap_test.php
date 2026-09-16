@@ -19,16 +19,9 @@ namespace tool_tracy;
 /**
  * Tests for \tool_tracy\bootstrap.
  *
- * Note on scope: this does NOT (and cannot) test Tracy's own AJAX-safety
- * mechanism (Tracy\Helpers::isHtmlMode()) — that method has a hard
- * `!isCli()` condition and always returns false under PHPUnit, which runs
- * as CLI SAPI, regardless of what headers/superglobals a test fakes. That
- * mechanism can only be verified against a real HTTP request/response
- * cycle — see tests/ajax_smoke.sh for that.
- *
- * What IS meaningfully testable here is our own PHP_SAPI check in
- * bootstrap::enable(), which is a different, narrower safety property:
- * never show the debug bar for CLI/cron scripts.
+ * Does NOT test Tracy's own AJAX-safety (Tracy\Helpers::isHtmlMode() always
+ * returns false under PHPUnit's CLI SAPI) — see tests/ajax_smoke.sh for that.
+ * What's testable here is our narrower PHP_SAPI check in enable().
  *
  * @package    tool_tracy
  * @copyright  2026 Radek Krejci
@@ -68,11 +61,8 @@ class bootstrap_test extends \basic_testcase {
         return [
             'development string' => ['development', false],
             'production string' => ['production', true],
-            // 'detect'/null/an unrecognised string all fall through to
-            // Tracy's own detectDebugMode(), which resolves immediately to
-            // a concrete bool (never stays null) — under CLI, with no
-            // REMOTE_ADDR to match against 127.0.0.1/::1, that's always
-            // true (production).
+            // detectDebugMode() resolves immediately to a bool; under CLI
+            // (no REMOTE_ADDR) that's always true (production).
             'detect string' => ['detect', true],
             'unrecognised string falls back to detect' => ['bogus', true],
             'raw bool true (Tracy\Debugger::Production)' => [true, true],
@@ -121,9 +111,48 @@ class bootstrap_test extends \basic_testcase {
     }
 
     /**
-     * "Absolutely nothing may leak": enable() must hide every actual $CFG
-     * property, not just the ones scrubber's pattern happens to guess are
-     * sensitive — see classes/scrubber.php's $extraExactKeys.
+     * @runInSeparateProcess
+     */
+    public function test_reclaimhandlers_takes_the_handlers_back_from_moodle(): void {
+        bootstrap::enable('development');
+
+        // Simulate lib/setup.php claiming the handlers after enable() ran.
+        set_exception_handler('default_exception_handler');
+        set_error_handler('default_error_handler');
+        $this->assertSame(['exception', 'error'], bootstrap::hijackedHandlers());
+
+        bootstrap::reclaimHandlers();
+
+        $this->assertSame([], bootstrap::hijackedHandlers(), 'Moodle\'s handlers must no longer be active');
+    }
+
+    /**
+     * @runInSeparateProcess
+     */
+    public function test_reclaimhandlers_installs_tracys_real_handlers(): void {
+        bootstrap::enable('development');
+        set_exception_handler('default_exception_handler');
+        set_error_handler('default_error_handler');
+
+        bootstrap::reclaimHandlers();
+
+        $errorHandler = set_error_handler(static fn () => false);
+        set_error_handler($errorHandler);
+        $this->assertSame([\Tracy\Debugger::class, 'errorHandler'], $errorHandler);
+    }
+
+    /**
+     * @runInSeparateProcess
+     */
+    public function test_reclaimhandlers_does_not_throw_when_tracy_was_never_enabled(): void {
+        bootstrap::reclaimHandlers();
+
+        $this->addToAssertionCount(1); // reaching this line without a fatal is the assertion
+    }
+
+    /**
+     * enable() must hide every actual $CFG property, not just ones the
+     * pattern guesses are sensitive — see scrubber.php's $extraExactKeys.
      *
      * @runInSeparateProcess
      */
@@ -144,25 +173,18 @@ class bootstrap_test extends \basic_testcase {
     }
 
     /**
-     * Regression test: at the point config.php calls enable() (the
-     * low-level path), $CFG only has the ~30 properties config.php itself
-     * sets — everything lib/setup.php's initialise_cfg() later loads from
-     * mdl_config (including e.g. siteidentifier) doesn't exist yet, so
-     * enable() alone cannot know about it. refreshCfgScrubbing(), called
-     * again once $CFG is actually complete (tool_tracy_after_config()
-     * does this for every request, regardless of which path enabled
-     * Tracy), is what closes that gap.
+     * $CFG only has ~30 properties when config.php calls enable() — the
+     * rest arrives later via initialise_cfg(). refreshCfgScrubbing() closes
+     * that gap when called again once $CFG is complete.
      *
      * @runInSeparateProcess
      */
     public function test_refreshcfgscrubbing_covers_keys_added_to_cfg_after_enable(): void {
         global $CFG;
 
-        bootstrap::enable('development'); // takes its $CFG snapshot now, before the key below exists
+        bootstrap::enable('development'); // snapshot taken before the key below exists
 
-        // Deliberately does not match scrubber's sensitive-looking-name
-        // pattern (no "pass"/"secret"/"token"/etc substring) — this test is
-        // specifically about the $CFG-exact-key mechanism, not the pattern.
+        // No "pass"/"secret"/etc substring: tests the exact-key mechanism, not the pattern.
         $CFG->tracy_test_late_marker = 'should-not-leak';
 
         $scrubberbefore = \Tracy\Debugger::getBlueScreen()->scrubber;
@@ -183,10 +205,8 @@ class bootstrap_test extends \basic_testcase {
     }
 
     /**
-     * Not "Tracy was never enabled" (this site's own config.php always
-     * enables it via the low-level path, so that state is unreachable
-     * here) — just that the call is always safe regardless of Tracy's
-     * enabled state, since callers (lib.php) can't know that in advance.
+     * Must be safe to call regardless of enabled state — callers can't
+     * know it in advance.
      *
      * @runInSeparateProcess
      */

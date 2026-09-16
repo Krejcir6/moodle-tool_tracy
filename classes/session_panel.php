@@ -17,15 +17,12 @@
 /**
  * Tracy Bar panel showing session metadata and $SESSION contents.
  *
- * The riskiest of the four Phase 2 panels: $SESSION is a grab-bag any
- * plugin can put anything in, including short-lived tokens for SSO/LTI
- * launch flows — so, like user_panel, its contents go through
- * bootstrap::scrubbedDumpOptions() rather than a hand-picked field list.
+ * $SESSION is a grab-bag any plugin can put anything in (SSO/LTI tokens
+ * included), so like user_panel it's rendered via
+ * bootstrap::scrubbedDumpOptions(), not a hand-picked field list.
  *
- * The raw PHP session ID is *never* shown here, under any circumstance,
- * regardless of what the scrubber would or wouldn't catch: leaking it is
- * equivalent to leaking an authentication cookie (session hijacking), so
- * this is a hardcoded exclusion, not something left to a name-based guess.
+ * The raw session ID is never shown, hardcoded regardless of the scrubber
+ * — leaking it is equivalent to leaking an auth cookie.
  *
  * @package    tool_tracy
  * @copyright  2026 Radek Krejci
@@ -67,10 +64,7 @@ final class session_panel implements \Tracy\IBarPanel
         $html .= '</table>';
 
         $data = isset($SESSION) ? (array) $SESSION : [];
-        // Explicit belt-and-braces alongside the scrubber, same reasoning
-        // as the class docblock: never rely on a name-based guess alone
-        // for something equivalent to an auth token.
-        unset($data['sesskey']);
+        unset($data['sesskey']); // belt-and-braces alongside the scrubber
 
         $html .= \Tracy\Dumper::toHtml($data, bootstrap::scrubbedDumpOptions());
         $html .= '</div>';

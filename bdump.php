@@ -15,22 +15,16 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Replaces Tracy's global bdump() with one that actually respects
- * $keysToHide/the scrubber.
+ * Replaces Tracy's global bdump() with one that respects $keysToHide/the
+ * scrubber — Tracy\Debugger::barDump() applies neither on its own, unlike
+ * dump()/the bluescreen (see README.md's "Sensitive data"), so unpatched
+ * `bdump($CFG)` renders $CFG->dbpass in full.
  *
- * Tracy\Debugger::barDump() (what bdump() calls) does not apply
- * Debugger::$keysToHide or BlueScreen::$scrubber at all — unlike
- * Debugger::dump() and the bluescreen, see README.md's "Sensitive data"
- * section. Without this, `bdump($CFG)` renders $CFG->dbpass and everything
- * else in full, in plain text, in the debug bar.
+ * Tracy's functions.php defines bdump() guarded by
+ * `if (!function_exists('bdump'))`; requiring this before
+ * thirdparty/tracy/src/tracy.php (see classes/bootstrap.php) makes ours win.
  *
- * Tracy's own functions.php defines bdump() guarded by
- * `if (!function_exists('bdump'))`, so as long as this file is required
- * BEFORE thirdparty/tracy/src/tracy.php (see classes/bootstrap.php), ours
- * wins and Tracy's own definition is silently skipped.
- *
- * Must have no namespace: bdump() is meant to be called bare, exactly like
- * Tracy's own, from anywhere in the codebase.
+ * No namespace: bdump() must be callable bare, like Tracy's own.
  *
  * @package    tool_tracy
  * @copyright  2026 Radek Krejci
@@ -51,15 +45,10 @@ if (!function_exists('bdump')) {
 
 if (!function_exists('bdump_unsafe')) {
     /**
-     * Deliberate escape hatch: identical to Tracy's own, unprotected
-     * barDump() — no $keysToHide, no scrubber, nothing masked. Everything
-     * dumped this way appears in full, secrets included.
-     *
-     * This must never be reached by accident, which is why it has its own
-     * unmistakable, greppable name instead of e.g. a flag on bdump()
-     * (`bdump($x, unsafe: true)` is exactly the kind of thing that gets
-     * left in and forgotten), and why its panel title is always prefixed
-     * with a visible "UNSAFE" marker regardless of what title is passed.
+     * Deliberate escape hatch: identical to Tracy's own unprotected
+     * barDump(), nothing masked. Its own greppable name (rather than e.g.
+     * a `bdump($x, unsafe: true)` flag) and the forced "UNSAFE" title
+     * prefix are both there so this is never reached by accident.
      *
      * @tracySkipLocation
      */

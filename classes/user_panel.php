@@ -17,18 +17,11 @@
 /**
  * Tracy Bar panel showing the current $USER.
  *
- * Deliberately dumps $USER wholesale through the same scrubbed Dumper
- * options as everything else in the plugin (bootstrap::scrubbedDumpOptions())
- * rather than hand-picking "safe" fields: $USER is a plain stdClass any
- * auth plugin/SSO integration/custom profile field can add properties to,
- * so a hand-picked field list would need updating every time one of those
- * adds something — the scrubber covers whatever's there today and whatever
- * gets added later, the same way it does for $CFG.
- *
- * It's always the *viewing* user's own data — not a privacy leak of
- * someone else's account — but the debug bar itself is visible to every
- * logged-in user (not just admins) whenever Tracy is in development mode,
- * so this still goes through the same masking as everything else.
+ * Dumps $USER wholesale through bootstrap::scrubbedDumpOptions() rather
+ * than hand-picking "safe" fields — same reasoning as $CFG: any auth/SSO
+ * plugin can add properties, and a hand-picked list would go stale. Always
+ * the *viewing* user's own data, but the bar is visible to every logged-in
+ * user (not just admins) in development mode, so it's still scrubbed.
  *
  * @package    tool_tracy
  * @copyright  2026 Radek Krejci

@@ -15,18 +15,8 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Admin settings.
- *
- * There are two independent ways to activate Tracy — see README.md:
- * - Low-level: an explicit \tool_tracy\bootstrap::enable() call in
- *   config.php, before lib/setup.php runs. Catches bootstrap-time errors
- *   too. Always takes priority if present.
- * - High-level: the "enabled"/"mode"/"logdirectory" settings below, applied
- *   by lib.php's tool_tracy_after_config() once $USER/session exist. No
- *   file edits needed, but misses anything that happens before that point.
- *
- * "restricttoadmins" applies to the debug bar's visibility regardless of
- * which of the two paths enabled Tracy.
+ * Admin settings — the high-level activation path, see README.md.
+ * "restricttoadmins" applies regardless of which path enabled Tracy.
  *
  * @package    tool_tracy
  * @copyright  2026 Radek Krejci

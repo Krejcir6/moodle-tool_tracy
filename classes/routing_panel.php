@@ -17,11 +17,8 @@
 /**
  * Tracy Bar panel showing the current request/page.
  *
- * Reads $_SERVER/$PAGE lazily inside getTab()/getPanel() (called by Tracy
- * only when it actually renders the bar, at shutdown) rather than in the
- * constructor — by the time this panel is registered
- * (tool_tracy_after_config(), early in bootstrap), $PAGE hasn't been set up
- * for the specific page script yet.
+ * Reads $_SERVER/$PAGE lazily in getTab()/getPanel(), not the constructor
+ * — $PAGE isn't set up yet when this panel gets registered.
  *
  * @package    tool_tracy
  * @copyright  2026 Radek Krejci
@@ -78,12 +75,7 @@ final class routing_panel implements \Tracy\IBarPanel
         return $html;
     }
 
-    /**
-     * $_SERVER['REQUEST_URI'] with any sensitive-looking query parameter
-     * (sesskey, token, ...) masked, using the same scrubber pattern as
-     * everything else — some legacy Moodle URLs do carry these in the
-     * query string.
-     */
+    /** $_SERVER['REQUEST_URI'] with sensitive-looking query params (sesskey, ...) masked. */
     private function path(): string
     {
         $host = $_SERVER['HTTP_HOST'] ?? null;

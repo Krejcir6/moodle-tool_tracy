@@ -17,25 +17,13 @@
 /**
  * Tracy Bar panel showing database activity.
  *
- * Two tiers, deliberately: aggregate counters ($DB->perf_get_reads() etc.)
- * are public Moodle API and always shown, no core changes needed. The
- * per-query table needs query_log::entries(), which is only ever populated
- * if the optional dev/moodle_database.patch has been applied — see
- * query_log.php and README.md's "Database panel" section. Without it, this
- * panel still shows the aggregate numbers and explains how to get the rest.
+ * Two tiers: aggregate counters ($DB->perf_get_reads() etc., public API,
+ * always shown) and a per-query table needing the optional
+ * dev/moodle_database.patch — see query_log.php and README.md. SQL text
+ * only, no params (see query_log.php for why).
  *
- * Deliberately SQL text only, no params: query param *values* would need
- * masking, which needed a second core-patch hook point to do safely (see
- * git history/ROADMAP.md) — more complexity than it was worth for what
- * this panel is for. The SQL text itself only ever contains placeholder
- * syntax (`:password`, `?`), never literal values, so there's nothing to
- * mask in the first place.
- *
- * The per-query table flags two things, colour-coded, no core patch needed
- * beyond what's already required for the table itself:
- * - slow queries (time thresholds below);
- * - frequent/repeated queries (the same SQL text executed many times in one
- *   request — the classic N+1 smell). Counted purely by exact SQL text.
+ * Rows are colour-coded for slow queries and ones repeated &ge;5&times;
+ * in one request (a classic N+1 smell), both counted by exact SQL text.
  *
  * @package    tool_tracy
  * @copyright  2026 Radek Krejci
@@ -157,11 +145,9 @@ final class database_panel implements \Tracy\IBarPanel
     }
 
     /**
-     * Groups entries by exact SQL text, keeping only those run at least
-     * self::FREQUENT_THRESHOLD times, with their combined ("if this ran
-     * once instead of N times") total time — the number that actually
-     * matters for an N+1 smell, since any single occurrence can look
-     * individually harmless. Sorted most expensive first.
+     * Groups by exact SQL text, keeping only those run
+     * self::FREQUENT_THRESHOLD+ times, with combined time — the number
+     * that matters for N+1, since one occurrence alone can look harmless.
      *
      * @param array<int, array{sql: ?string, time: float, error: mixed}> $entries
      * @return array<string, array{count: int, time: float}>

@@ -19,11 +19,8 @@ namespace tool_tracy;
 /**
  * Tests for the global bdump() shim in bdump.php.
  *
- * Regression coverage for a real leak: Tracy\Debugger::barDump() (what
- * Tracy's own bdump() calls) does not apply Debugger::$keysToHide or a
- * scrubber at all — bdump($CFG) rendered $CFG->dbpass in plain text before
- * bdump.php's replacement fixed it. See bdump.php and README.md's
- * "Sensitive data" section.
+ * Regression coverage: unpatched bdump($CFG) rendered $CFG->dbpass in
+ * plain text — see bdump.php.
  *
  * @package    tool_tracy
  * @copyright  2026 Radek Krejci
@@ -46,11 +43,8 @@ class bdump_test extends \basic_testcase {
     public function test_bdump_masks_a_known_cfg_key(): void {
         bootstrap::enable('development');
 
-        // Built at runtime, not written as a literal in the bdump() call
-        // below: Tracy's dump includes an "open in editor" preview of the
-        // *source line* that called bdump(), which would otherwise make
-        // this test fail for the wrong reason (a literal in the source
-        // showing up in that preview, not an actual masking failure).
+        // Built at runtime, not a literal: Tracy's dump previews the
+        // calling source line, which would otherwise leak it too.
         $secret = 'super-secret-value-' . bin2hex(random_bytes(4));
         $array = ['dbpass' => $secret, 'wwwroot' => 'http://example.test'];
         bdump($array);
@@ -62,10 +56,6 @@ class bdump_test extends \basic_testcase {
     }
 
     /**
-     * The specific, concrete case reported live: bdump($CFG) must not leak
-     * $CFG->dbpass, because "dbpass" is a real $CFG key (refreshCfgScrubbing()
-     * covers it), not because it happens to look sensitive by name alone.
-     *
      * @runInSeparateProcess
      */
     public function test_bdump_masks_real_cfg_dbpass(): void {
@@ -90,10 +80,6 @@ class bdump_test extends \basic_testcase {
     }
 
     /**
-     * bdump_unsafe() is the deliberate, explicitly-named opt-out — it must
-     * NOT mask anything, and its panel title must always carry a visible
-     * "UNSAFE" marker so its output can never be mistaken for bdump()'s.
-     *
      * @runInSeparateProcess
      */
     public function test_bdump_unsafe_does_not_mask_anything(): void {

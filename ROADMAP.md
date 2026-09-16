@@ -16,8 +16,34 @@ default, not an opt-in.
       default (`restricttoadmins = 1`).
 - [x] `Debugger::$strictMode = true` — no error silently downgraded to a
       log line if it can be a bluescreen instead.
-- [x] Handler-hijack detection + diagnostic panel: report, don't silently
-      fight Moodle for control of `set_exception_handler`/`set_error_handler`.
+- [x] Handler-hijack detection, **and reclaiming**: Tracy must be the
+      active exception/error handler regardless of which activation path
+      enabled it. `bootstrap::reclaimHandlers()`, called unconditionally
+      from `tool_tracy_after_config()` on every request whenever
+      `hijackedHandlers()` finds anything, takes them straight back from
+      Moodle's `default_exception_handler`/`default_error_handler` —
+      reimplementing the two lines `Debugger::enable()` itself uses
+      (`exceptionHandler()`/`errorHandler()` are `public static`), since
+      calling `enable()` again no-ops once already enabled. `handler_check_panel`
+      is now purely informational ("reclaimed", not "hijacked" — by the
+      time it's shown, Tracy already has the handlers back). This reverses
+      an earlier decision (see "Explicitly out of scope", now removed) —
+      the original "just report it" design left the low-level path
+      catching nothing for the entire rest of a normal page render, which
+      defeated its own point.
+      - **Before reclaiming, keeps one piece of what Moodle's own handler
+        did**: `default_exception_handler()`'s first line is
+        `abort_all_db_transactions()` — an exception handler must never
+        leave a Moodle DB transaction open. Pulled out into
+        `bootstrap::abortOpenTransactions()` (safe/cheap to always call —
+        the underlying function no-ops if nothing is open) specifically so
+        it's unit-testable without having to trigger a real, process-ending
+        `exit(255)`. Confirmed live, twice: PHPUnit test opens a real
+        transaction and asserts it's gone after calling it (log line
+        "Database transaction aborted automatically" appears); and a real
+        HTTP request that opens a transaction then throws mid-request
+        renders Tracy's bluescreen (not Moodle's error page) with the same
+        log line, not a dangling transaction.
 - [x] `tool_tracy\scrubber`: masks sensitive-looking values (`$CFG->dbpass`
       and friends, which `global $CFG;` puts in every stack trace) before
       Tracy can render them, at its strictest level by default — see
@@ -172,5 +198,3 @@ Moodle development, not just crash reporting.
 
 - Cookie/IP allowlist wiring for Tracy's production-mode detection — its
   own detection is used as-is.
-- Auto-reclaiming hijacked handlers. The plugin reports the hijack: it does
-  not attempt to re-register itself over Moodle's own handlers.

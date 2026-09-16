@@ -19,12 +19,9 @@ namespace tool_tracy;
 /**
  * Tests for \tool_tracy\query_log.
  *
- * Every test runs @runInSeparateProcess and uses a unique, made-up SQL
- * string as a marker: this environment's own config.php enables Tracy
- * (and the query-logging core patch) unconditionally on every request, so
- * real bootstrap queries flow through the exact same static state these
- * tests exercise — asserting on entries()'s overall shape/count would be
- * testing bootstrap noise, not this class.
+ * Every test uses a unique marker SQL string, not entries()'s overall
+ * shape/count: this site's own config.php feeds real bootstrap queries
+ * through the same static state.
  *
  * @package    tool_tracy
  * @copyright  2026 Radek Krejci

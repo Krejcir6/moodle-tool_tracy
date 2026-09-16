@@ -15,19 +15,15 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Tracy Bar panel showing triggered events, grouped by event class, and —
- * for each class — the observers actually registered to react to it.
+ * Tracy Bar panel showing triggered events, grouped by class, and — for
+ * each class — the observers registered to react to it.
  *
- * The observer list comes from \core\event\manager::get_all_observers(), a
- * public static method (unlike the database panel, no core patch needed
- * here). Matching an event to the observers that apply to it also needs
- * its class hierarchy (an event of class X matches observers registered
- * for X *and* any of its parent classes, all the way up to
- * \core\event\base, which is what a '*' observer registration becomes
- * internally) — that walk is done by \core\event\manager::get_observing_classes(),
- * which is `protected`, so observersFor() below reimplements the same
- * (trivial, unlikely to change: get_class()/get_parent_class() in a loop)
- * algorithm rather than reaching into a private internal.
+ * Observer list: \core\event\manager::get_all_observers() (public, unlike
+ * the database panel — no core patch needed). Matching an event to its
+ * observers also needs its parent-class chain (a '*' registration becomes
+ * \core\event\base internally) — that walk lives in
+ * manager::get_observing_classes(), which is `protected`, so
+ * observersFor() reimplements the same trivial get_parent_class() loop.
  *
  * @package    tool_tracy
  * @copyright  2026 Radek Krejci

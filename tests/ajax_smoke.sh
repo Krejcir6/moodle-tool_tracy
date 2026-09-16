@@ -1,20 +1,11 @@
 #!/usr/bin/env bash
 #
-# Smoke-tests that a real Moodle AJAX (external API) HTTP response stays
-# valid, uncorrupted JSON with Tracy enabled.
+# Smoke-tests that a real Moodle AJAX response stays valid JSON with Tracy
+# enabled. Not a PHPUnit test and can't be one: Tracy\Helpers::isHtmlMode()
+# has a hard `!isCli()` and always returns false under PHPUnit — this needs
+# a real HTTP request. See tests/bootstrap_test.php for what PHPUnit covers.
 #
-# This is NOT a PHPUnit test and cannot be one: PHPUnit runs as CLI SAPI,
-# and Tracy\Helpers::isHtmlMode() — the method that decides whether Tracy
-# injects the debug bar/bluescreen into a response — has a hard `!isCli()`
-# condition and unconditionally returns false under CLI, regardless of what
-# headers or superglobals a test fakes. The only way to verify this
-# mechanism is a real HTTP request/response cycle against a running site.
-# See tests/bootstrap_test.php for what IS covered at the PHPUnit level
-# (our own, narrower PHP_SAPI check that disables the bar for CLI scripts).
-#
-# Requires: curl, python3 (for JSON validation), a running Moodle site
-# reachable at MOODLE_URL with Tracy enabled and low-level or high-level
-# activation in effect.
+# Requires: curl, python3, a running Moodle site with Tracy enabled.
 #
 # Usage:
 #   MOODLE_URL=http://localhost:8000 ./tests/ajax_smoke.sh

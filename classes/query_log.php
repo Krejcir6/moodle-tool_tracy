@@ -15,15 +15,10 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Stores per-query (SQL text + timing, no params — see query_log.php at
- * the plugin root for why) entries fed to it by the global
- * tool_tracy_log_query(), which is only ever called at all if the
- * optional, dev-only core patch in dev/moodle_database.patch has been
- * applied — see README.md's "Database panel" section. Without that patch,
- * this class simply never receives anything, and database_panel falls
- * back to the aggregate perf_get_reads()/perf_get_writes()/
- * perf_get_queries_time() numbers, which are public Moodle API and need
- * no patch.
+ * Stores per-query entries (SQL + timing, no params — see query_log.php at
+ * the plugin root) fed by tool_tracy_log_query(), only ever called if the
+ * optional dev/moodle_database.patch is applied. Without it this stays
+ * empty and database_panel falls back to the aggregate perf_get_*() numbers.
  *
  * @package    tool_tracy
  * @copyright  2026 Radek Krejci

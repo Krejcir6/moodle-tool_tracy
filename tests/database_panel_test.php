@@ -19,11 +19,7 @@ namespace tool_tracy;
 /**
  * Tests for \tool_tracy\database_panel.
  *
- * query_log's state is static/process-global, and this environment's own
- * config.php feeds it real queries on every request (see
- * tests/query_log_test.php's class docblock for why) — every test here
- * runs @runInSeparateProcess and looks only at entries carrying a unique
- * marker string, so real traffic in the same process can't affect it.
+ * Uses unique marker SQL strings, same reasoning as query_log_test.php.
  *
  * @package    tool_tracy
  * @copyright  2026 Radek Krejci

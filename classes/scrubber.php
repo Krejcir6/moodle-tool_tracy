@@ -17,30 +17,16 @@
 /**
  * Hides sensitive-looking values from Tracy output.
  *
- * Moodle's `global $CFG;` convention means $CFG (DB password, SMTP
- * password, various API secrets, ...) shows up as a local variable in the
- * stack trace of almost any exception, in Tracy\BlueScreen's rendering —
- * without a scrubber, that value is shown in full.
+ * Moodle's `global $CFG;` convention puts $CFG (DB/SMTP passwords, API
+ * secrets, ...) in the stack trace of almost any exception. A name pattern
+ * alone is a guess, so bootstrap::enable() also passes every actual $CFG
+ * property name in as $extraExactKeys — at strict level, all of $CFG is
+ * hidden unconditionally, not just properties that look sensitive by name.
  *
- * The pattern match alone is a guess based on how a key *looks* — good
- * defense in depth, but not a guarantee. bootstrap::enable() additionally
- * passes every actual $CFG property name in as $extraExactKeys, so at the
- * default (strict) level *all* of $CFG is hidden unconditionally, not just
- * whichever properties happen to have a sensitive-looking name.
- *
- * Two, structurally different Tracy mechanisms exist for this, and this
- * class feeds both, since neither on its own covers everything:
- * - Tracy\BlueScreen::$scrubber — a callable(string $key, mixed $val,
- *   ?string $class): bool, checked against every key in every dump the
- *   bluescreen renders (stack frame locals, $_SERVER/$_ENV, ...). Pattern
- *   based, so it catches e.g. `dbpass`, `smtppass`, `proxypassword`
- *   without having to name each one — see forLevel().
- * - Tracy\Debugger::$keysToHide — a plain array Debugger::dump()/bdump()
- *   uses, checked with an *exact*, case-insensitive match only (see
- *   Tracy\Dumper\Describer::isSensitive()). Debugger::dump() does not
- *   accept a scrubber callable at all, so ad-hoc `bdump($x)` calls a
- *   developer writes are only ever protected by literal name matches —
- *   see keysToHide().
+ * Feeds two separate Tracy mechanisms, since neither alone covers
+ * everything: BlueScreen::$scrubber (a callable, checked against every
+ * key the bluescreen renders) and Debugger::$keysToHide (an exact-match
+ * array — the only thing bdump() respects, since it accepts no scrubber).
  *
  * @package    tool_tracy
  * @copyright  2026 Radek Krejci
@@ -58,13 +44,9 @@ final class scrubber
     public const LEVEL_MODERATE = 'moderate';
 
     /**
-     * @param string[] $extraExactKeys Extra key names to hide unconditionally,
-     *                                  regardless of $level or pattern match.
-     *                                  bootstrap::enable() passes every actual
-     *                                  $CFG property name here, so hiding
-     *                                  $CFG doesn't depend on any of its
-     *                                  property names happening to *look*
-     *                                  sensitive — every single one is hidden.
+     * @param string[] $extraExactKeys Hidden unconditionally regardless of
+     *                                  $level/pattern — bootstrap::enable()
+     *                                  passes every real $CFG key here.
      * @return \Closure callable(string $key, mixed $value, ?string $class): bool
      *                   for Tracy\BlueScreen::$scrubber.
      */
@@ -91,10 +73,7 @@ final class scrubber
         ];
 
         if ($level !== self::LEVEL_MODERATE) {
-            // Moodle $CFG property names that don't literally contain "pass"/
-            // "secret"/etc as a substring of *themselves* but are exact
-            // matches an exact-match list can still usefully catch when
-            // dumped directly.
+            // Real $CFG keys the pattern below wouldn't otherwise catch.
             $common = array_merge($common, [
                 'dbpass', 'smtppass', 'proxypassword', 'passwordsaltmain', 'siteidentifier',
                 'recaptchaprivatekey', 'googlemapkey3', 'sessioncookie',

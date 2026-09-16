@@ -15,15 +15,10 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Target of the wildcard observer registered in db/events.php.
- *
- * Unlike everything else in this plugin, Moodle calls this on *every*
- * triggered event on *every* request once the plugin is installed —
- * regardless of whether Tracy is actually enabled (the observer
- * registration itself doesn't know or care about that). The early return
- * below is what keeps this a no-op on a site where the plugin is present
- * but not enabled, consistent with the rest of the plugin (see
- * ROADMAP.md's no-op-by-default check).
+ * Target of the wildcard observer registered in db/events.php. Called on
+ * every event, every request, once the plugin is installed — regardless of
+ * whether Tracy is enabled — so the early return is what keeps this a
+ * no-op when it's present but not enabled.
  *
  * @package    tool_tracy
  * @copyright  2026 Radek Krejci

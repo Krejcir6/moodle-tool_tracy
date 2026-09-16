@@ -15,26 +15,18 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Global tool_tracy_log_query() — the target of an OPTIONAL, dev-only core
- * patch (dev/moodle_database.patch) to lib/dml/moodle_database.php's
- * query_log().
+ * Global tool_tracy_log_query() — target of an OPTIONAL, dev-only core
+ * patch (dev/moodle_database.patch) to query_log() in
+ * lib/dml/moodle_database.php, which exposes no public per-query hook of
+ * its own (query_start()/query_end()/query_log() are all protected).
  *
- * Moodle core does not expose a public per-query hook: query_start()/
- * query_end()/query_log() are all protected, and query_log() itself only
- * ever writes to the error log, never to anything a plugin can read back
- * (confirmed by reading lib/dml/moodle_database.php — see ROADMAP.md).
+ * SQL text and timing only, deliberately no params: params would need
+ * masking (a second core hook in fix_sql_params() to catch them before
+ * losing their names — see git history/ROADMAP.md), more complexity than
+ * it was worth. SQL text itself is just placeholder syntax, no values.
  *
- * Logs SQL text and timing only, deliberately no params: query param
- * *values* would need masking (an earlier version of this file did that,
- * with a second hook in fix_sql_params() to catch them before they lose
- * their names — see git history/ROADMAP.md), which turned out to be more
- * complexity than it was worth for what this panel is for. The SQL text
- * itself only ever contains placeholder syntax (`:password`, `?`), never
- * literal values, so there's nothing to mask here in the first place.
- *
- * Guarded by function_exists() exactly like bdump.php's replacement
- * functions: on any site that hasn't applied the patch, the check in core
- * is false and moodle_database behaves exactly as core ships it.
+ * function_exists()-guarded like bdump.php's replacements: inert unless
+ * the patch is applied.
  *
  * @package    tool_tracy
  * @copyright  2026 Radek Krejci
