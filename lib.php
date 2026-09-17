@@ -73,11 +73,9 @@ function tool_tracy_after_config(): void {
             }
         }
         $activationips = trim((string) get_config('tool_tracy', 'activationips'));
-        if ($activationips !== '' && !address_in_subnet(getremoteaddr(), $activationips)) {
-            return;
-        }
+        $tracymode = $activationips === '' ? 'development' : $activationips;
 
-        \tool_tracy\bootstrap::enable('development', null, $tracyhandlers);
+        \tool_tracy\bootstrap::enable($tracymode, null, $tracyhandlers);
 
         if (!class_exists(\Tracy\Debugger::class, false)) {
             return; // thirdparty/tracy not vendored.

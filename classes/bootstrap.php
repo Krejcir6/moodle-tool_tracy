@@ -50,13 +50,13 @@ require_once __DIR__ . '/query_log.php';
 final class bootstrap
 {
     /**
-     * @param string|bool|null $mode 'development', 'production', or null/'detect'
-     *                                to auto-detect. A raw Tracy\Debugger bool works too.
+     * @param string|array|bool|null $mode 'development', 'production', or
+     *                                IP whitelist. A raw Tracy\Debugger bool works too.
      * @param string|null $logDirectory Absolute path Tracy logs to, or null to disable.
      * @param bool $keepHandlers Whether Tracy should remain the active exception/error handler.
      */
     public static function enable(
-        string|bool|null $mode = null,
+        string|array|bool|null $mode = null,
         ?string $logDirectory = null,
         bool $keepHandlers = true
     ): void

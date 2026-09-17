@@ -16,19 +16,19 @@ final class activation extends check {
         global $CFG;
 
         $mode = get_config('tool_tracy', 'activationmode') ?: 'admins';
-        if ($mode === 'all') {
-            return new result(
-                result::WARNING,
-                get_string('check_activation_all', 'tool_tracy'),
-                get_string('check_activation_all_details', 'tool_tracy')
-            );
-        }
-
         if (!\tool_tracy_deployment_matches($CFG->wwwroot)) {
             return new result(
                 result::ERROR,
                 get_string('check_activation_mismatch', 'tool_tracy'),
                 get_string('check_activation_mismatch_details', 'tool_tracy')
+            );
+        }
+
+        if ($mode === 'all') {
+            return new result(
+                result::WARNING,
+                get_string('check_activation_all', 'tool_tracy'),
+                get_string('check_activation_all_details', 'tool_tracy')
             );
         }
 
