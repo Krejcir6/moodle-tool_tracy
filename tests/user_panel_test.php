@@ -25,6 +25,7 @@ namespace tool_tracy;
  */
 class user_panel_test extends \basic_testcase {
     public function test_gettab_contains_svg_icon(): void {
+        bootstrap::enable('development');
         $this->assertStringContainsString('<svg', (new user_panel())->getTab());
     }
 

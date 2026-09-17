@@ -46,6 +46,7 @@ class routing_panel_test extends \basic_testcase {
     }
 
     public function test_gettab_contains_svg_icon(): void {
+        bootstrap::enable('development');
         $this->assertStringContainsString('<svg', (new routing_panel())->getTab());
     }
 

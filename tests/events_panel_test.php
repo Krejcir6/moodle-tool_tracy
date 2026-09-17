@@ -25,6 +25,7 @@ namespace tool_tracy;
  */
 class events_panel_test extends \advanced_testcase {
     public function test_gettab_contains_svg_icon(): void {
+        bootstrap::enable('development');
         $this->assertStringContainsString('<svg', (new events_panel())->getTab());
     }
 
