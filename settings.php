@@ -16,7 +16,8 @@
 
 /**
  * Admin settings — the high-level activation path, see README.md.
- * "restricttoadmins" applies regardless of which path enabled Tracy.
+ * The activation mode applies to the standard post-bootstrap path. The
+ * experimental config.php path is intentionally outside this setting.
  *
  * @package    tool_tracy
  * @copyright  2026 Radek Krejci
@@ -29,11 +30,16 @@ if ($hassiteconfig) {
     $settings = new admin_settingpage('tool_tracy', get_string('pluginname', 'tool_tracy'));
     $ADMIN->add('tools', $settings);
 
-    $settings->add(new admin_setting_configcheckbox(
-        'tool_tracy/enabled',
-        get_string('enabled', 'tool_tracy'),
-        get_string('enabled_desc', 'tool_tracy'),
-        '0'
+    $settings->add(new admin_setting_configselect(
+        'tool_tracy/activationmode',
+        get_string('activationmode', 'tool_tracy'),
+        get_string('activationmode_desc', 'tool_tracy'),
+        'admins',
+        [
+            'off' => get_string('activationmode_off', 'tool_tracy'),
+            'admins' => get_string('activationmode_admins', 'tool_tracy'),
+            'all' => get_string('activationmode_all', 'tool_tracy'),
+        ]
     ));
 
     $settings->add(new admin_setting_configselect(
@@ -67,10 +73,4 @@ if ($hassiteconfig) {
         ]
     ));
 
-    $settings->add(new admin_setting_configcheckbox(
-        'tool_tracy/restricttoadmins',
-        get_string('restricttoadmins', 'tool_tracy'),
-        get_string('restricttoadmins_desc', 'tool_tracy'),
-        '1'
-    ));
 }

@@ -19,7 +19,8 @@ namespace tool_tracy;
 /**
  * Installing this plugin on an already-live site, with config.php left
  * untouched and settings left at their defaults, must be a complete
- * no-op: nothing enabled, nothing visible, no behaviour change.
+ * no-op for regular users: nothing enabled, nothing visible, no behaviour
+ * change. Administrators receive the development diagnostics by default.
  *
  * What this file CAN verify in-process: the admin setting defaults
  * themselves, and that tool_tracy_after_config()'s early-return guard is
@@ -39,25 +40,18 @@ namespace tool_tracy;
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class noop_by_default_test extends \advanced_testcase {
-    public function test_enabled_setting_defaults_to_off(): void {
+    public function test_activation_defaults_to_admins_only(): void {
         $this->resetAfterTest();
 
-        $this->assertEmpty(get_config('tool_tracy', 'enabled'));
+        $this->assertSame('admins', get_config('tool_tracy', 'activationmode') ?: 'admins');
     }
 
     public function test_mode_setting_defaults_to_detect_not_development(): void {
         $this->resetAfterTest();
 
-        // 'development' would mean every uncaught error is shown to
-        // visitors in full detail the moment someone flips 'enabled' on —
-        // 'detect' is the safe default to pair it with.
+        // 'development' would show full error detail; 'detect' is the safe
+        // default to pair with the administrators-only activation mode.
         $this->assertSame('detect', get_config('tool_tracy', 'mode'));
-    }
-
-    public function test_restricttoadmins_defaults_to_on(): void {
-        $this->resetAfterTest();
-
-        $this->assertEquals(1, get_config('tool_tracy', 'restricttoadmins'));
     }
 
     public function test_handlerownership_defaults_to_moodle(): void {

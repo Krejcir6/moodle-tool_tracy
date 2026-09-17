@@ -6,14 +6,14 @@ Goal: get Tracy correctly wired into Moodle without introducing a security
 or stability regression, before growing the feature set. Safety is the
 default, not an opt-in.
 
-- [x] Two independent activation paths: low-level (`config.php`, catches
-      bootstrap-time errors) and high-level (admin settings, no file edits).
+- [x] Standard activation is controlled by one setting: `off`, `admins`
+      (default), or `all`. It controls both Tracy activation and bar
+      visibility. Low-level `config.php` activation remains an experimental,
+      not recommended escape hatch for bootstrap-time errors.
 - [x] Tracy vendored under `thirdparty/tracy/`, pinned version, per Moodle's
       third-party library policy — not pulled in via Composer at runtime.
-- [x] Safe defaults: high-level path is **off** (`enabled = 0`), `mode`
-      defaults to `detect` (never forces development mode on), debug bar
-      **restricted to `moodle/site:config` users in production mode** by
-      default (`restricttoadmins = 1`).
+- [x] Safe defaults: standard activation is **administrators only**;
+      `mode` defaults to `detect` (never forces development mode on).
 - [x] `Debugger::$strictMode = true` — no error silently downgraded to a
       log line if it can be a bluescreen instead.
 - [x] Handler-hijack detection and **optional reclaiming**. The
@@ -76,14 +76,14 @@ default, not an opt-in.
       (non-security) double-escaping bug in `handler_check_panel::getPanel()`.
 - [x] `handler_check_panel` rendering test — see above.
 - [x] No-op-by-default check: `tests/noop_by_default_test.php` locks in the
-      three admin setting defaults (`enabled=0`, `mode=detect`,
-      `restricttoadmins=1`) at the PHPUnit level. The deeper claim — a real
+      admin setting defaults (`activationmode=admins`, `mode=detect`,
+      `handlerownership=moodle`) at the PHPUnit level. The deeper claim — a real
       request produces zero Tracy footprint when config.php has no
       low-level `enable()` call — can't be verified by a PHPUnit test in
       *this* dev environment (its own config.php always calls the
       low-level path, unconditionally, for developing the plugin itself),
       so it was verified manually once instead: with that config.php line
-      commented out and `enabled=0`, `/login/index.php` came back with zero
+      commented out and `activationmode=off`, `/login/index.php` came back with zero
       case-insensitive occurrences of "tracy" anywhere in the response and
       no `tracy-session` cookie — only the ordinary `MoodleSession` one.
 

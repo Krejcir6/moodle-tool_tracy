@@ -25,17 +25,23 @@
 defined('MOODLE_INTERNAL') || die();
 
 /**
- * Second, later activation path: if config.php didn't already enable Tracy
- * (the low-level path, see classes/bootstrap.php), turns it on here once
- * $USER/session exist. Misses bootstrap-time errors, needs no file edits.
+ * Standard activation path. Tracy is enabled per request according to the
+ * activation mode, once $USER/session exist.
  */
 function tool_tracy_after_config(): void {
     $alreadyenabled = class_exists(\Tracy\Debugger::class, false);
     $tracyhandlers = get_config('tool_tracy', 'handlerownership') === 'tracy';
 
     if (!$alreadyenabled) {
-        if (empty(get_config('tool_tracy', 'enabled'))) {
+        $activationmode = get_config('tool_tracy', 'activationmode') ?: 'admins';
+        if ($activationmode === 'off') {
             return;
+        }
+        if ($activationmode === 'admins') {
+            global $USER;
+            if (empty($USER->id) || !has_capability('moodle/site:config', \context_system::instance())) {
+                return;
+            }
         }
 
         \tool_tracy\bootstrap::enable(
@@ -72,12 +78,4 @@ function tool_tracy_after_config(): void {
         return;
     }
 
-    if (empty(get_config('tool_tracy', 'restricttoadmins'))) {
-        return;
-    }
-
-    global $USER;
-    if (empty($USER->id) || !has_capability('moodle/site:config', \context_system::instance())) {
-        \Tracy\Debugger::$showBar = false;
-    }
 }

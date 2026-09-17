@@ -29,7 +29,17 @@ it's the *high-level* activation path (see below), and — regardless of
 which path enabled Tracy — it restricts the debug bar to admins when
 Tracy is in production mode.
 
-## Two activation paths
+## Standard activation
+
+The admin setting **Tracy activation** controls both activation and debug bar
+visibility. It defaults to **Administrators only**. Choose **Disabled** in
+production; choose **All users** only for controlled development diagnostics.
+
+The standard activation happens after Moodle bootstrap, once the current user
+is known. Requests from users outside the selected scope are left entirely to
+Moodle and do not register Tracy handlers or panels.
+
+## Experimental low-level activation
 
 ### Low-level: config.php
 
@@ -40,6 +50,11 @@ Add these lines to your site's `config.php`, above
 require_once(__DIR__ . '/admin/tool/tracy/classes/bootstrap.php');
 \tool_tracy\bootstrap::enable(\Tracy\Debugger::Development);
 ```
+
+This path is **experimental and not recommended**. It is retained only for
+diagnosing failures during Moodle's own bootstrap. It runs before Moodle knows
+the current user, so it bypasses the administrators-only activation mode and
+can affect every request. The operator must explicitly accept that behavior.
 
 `enable()` takes `enable(string|bool|null $mode = null, ?string $logDirectory = null)`.
 `$mode` is `'development'`, `'production'`, or `null`/`'detect'`/anything
@@ -57,14 +72,8 @@ point, so it can't rely on the plugin lifecycle. It always takes priority:
 if config.php already called `enable()`, the high-level path below is a
 no-op.
 
-### High-level: admin settings
-
-If you don't need bootstrap-time coverage and don't want to touch
-`config.php`, go to *Site administration → Plugins → Admin tools → Tracy
-debugger* and turn on **Enable Tracy (admin settings)**, with a **Mode**
-and optional **Log directory**. `tool_tracy_after_config()` applies these
-once `$USER`/session exist — later than the low-level path, but with zero
-file edits.
+The standard admin-settings path is the recommended path. It does not require
+editing `config.php` and can enforce the default administrators-only scope.
 
 ### Choosing who handles errors after bootstrap
 
