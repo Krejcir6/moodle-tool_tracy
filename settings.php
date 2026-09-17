@@ -30,6 +30,16 @@ if ($hassiteconfig) {
     $settings = new admin_settingpage('tool_tracy', get_string('pluginname', 'tool_tracy'));
     $ADMIN->add('tools', $settings);
 
+    global $CFG, $DB;
+    if ($DB->get_manager()->table_exists('tool_tracy_deploy')
+            && !\tool_tracy_deployment_matches($CFG->wwwroot)) {
+        $settings->add(new admin_setting_description(
+            'tool_tracy/deploymentmismatch',
+            get_string('deploymentmismatch', 'tool_tracy'),
+            get_string('deploymentmismatch_desc', 'tool_tracy')
+        ));
+    }
+
     $activationmode = new admin_setting_configselect(
         'tool_tracy/activationmode',
         get_string('activationmode', 'tool_tracy'),

@@ -73,11 +73,24 @@ final class bootstrap
             };
         }
         $handlers = $keepHandlers ? null : self::captureHandlers();
+        $runtime = $keepHandlers ? null : [
+            'error_reporting' => error_reporting(),
+            'display_errors' => ini_get('display_errors'),
+            'html_errors' => ini_get('html_errors'),
+            'log_errors' => ini_get('log_errors'),
+            'zend.exception_ignore_args' => ini_get('zend.exception_ignore_args'),
+        ];
 
         \Tracy\Debugger::enable($mode, $logDirectory);
 
         if ($handlers !== null) {
             self::restoreHandlers($handlers);
+            error_reporting($runtime['error_reporting']);
+            foreach (['display_errors', 'html_errors', 'log_errors', 'zend.exception_ignore_args'] as $setting) {
+                if ($runtime[$setting] !== false) {
+                    ini_set($setting, (string) $runtime[$setting]);
+                }
+            }
         }
         \Tracy\Debugger::$strictMode = true;
         \Tracy\Debugger::$showBar = PHP_SAPI !== 'cli';
