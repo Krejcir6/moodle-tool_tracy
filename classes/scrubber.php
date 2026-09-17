@@ -104,6 +104,48 @@ final class scrubber
         return $values;
     }
 
+    /**
+     * Scrubs standard Moodle event data. The generic "other" payload is
+     * handled fail-closed because its field names and contents are defined by
+     * arbitrary components rather than the Events API.
+     *
+     * @param array<mixed> $data
+     * @return array<mixed>
+     */
+    public static function scrubEventData(array $data): array
+    {
+        if (array_key_exists('other', $data)) {
+            $data['other'] = self::scrubEventOther($data['other']);
+        }
+
+        return self::scrubArray($data);
+    }
+
+    private static function scrubEventOther(mixed $value): mixed
+    {
+        if (is_array($value)) {
+            $scrub = self::forLevel();
+            foreach ($value as $key => $item) {
+                $value[$key] = is_string($key) && $scrub($key, $item)
+                    ? '***'
+                    : self::scrubEventOther($item);
+            }
+
+            return $value;
+        }
+
+        if (is_string($value)) {
+            $decoded = json_decode($value, true);
+            if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
+                return self::scrubEventOther($decoded);
+            }
+
+            return '***';
+        }
+
+        return $value;
+    }
+
     private static function pattern(string $level): string
     {
         if ($level === self::LEVEL_MODERATE) {

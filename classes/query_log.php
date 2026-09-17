@@ -54,6 +54,11 @@ final class query_log
         return self::$entries;
     }
 
+    public static function clear(): void
+    {
+        self::$entries = [];
+    }
+
     public static function totalTime(): float
     {
         return array_sum(array_column(self::$entries, 'time'));

@@ -28,6 +28,11 @@ namespace tool_tracy;
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class query_log_test extends \basic_testcase {
+    protected function setUp(): void {
+        parent::setUp();
+        query_log::clear();
+    }
+
     private function find(string $sql): ?array {
         foreach (query_log::entries() as $entry) {
             if ($entry['sql'] === $sql) {

@@ -41,6 +41,7 @@ class deployment_test extends \advanced_testcase {
     }
 
     public function test_security_check_reports_activation_modes(): void {
+        $this->resetAfterTest();
         $check = new \tool_tracy\check\activation();
 
         set_config('activationmode', 'off', 'tool_tracy');

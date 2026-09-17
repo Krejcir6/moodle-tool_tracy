@@ -67,7 +67,10 @@ final class events_panel implements \Tracy\IBarPanel
 
         foreach ($groups as $class => $group) {
             $html .= '<h2>' . htmlspecialchars($class, ENT_QUOTES) . ' &times; ' . $group['count'] . '</h2>';
-            $html .= \Tracy\Dumper::toHtml($group['data'], bootstrap::scrubbedDumpOptions());
+            $html .= \Tracy\Dumper::toHtml(
+                scrubber::scrubEventData($group['data']),
+                bootstrap::scrubbedDumpOptions()
+            );
             $html .= $this->renderObservers($this->observersFor($class));
         }
 

@@ -80,6 +80,25 @@ class events_panel_test extends \advanced_testcase {
     /**
      * @runInSeparateProcess
      */
+    public function test_getpanel_masks_a_secret_stored_under_a_generic_other_key(): void {
+        $this->resetAfterTest();
+        bootstrap::enable('development');
+
+        $secret = 'generic-value-secret-' . bin2hex(random_bytes(4));
+        $event = \core\event\user_loggedin::create([
+            'objectid' => 2,
+            'other' => ['username' => $secret],
+        ]);
+        observer::event_triggered($event);
+
+        $html = (new events_panel())->getPanel();
+
+        $this->assertStringNotContainsString($secret, $html);
+    }
+
+    /**
+     * @runInSeparateProcess
+     */
     public function test_getpanel_groups_repeated_events_by_class(): void {
         $this->resetAfterTest();
         bootstrap::enable('development');

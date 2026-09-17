@@ -146,4 +146,23 @@ class scrubber_test extends \basic_testcase {
         $this->assertSame('***', $scrubbed['data']['token']);
         $this->assertSame('visible', $scrubbed['data']['label']);
     }
+
+    public function test_scrubeventdata_hides_unstructured_strings_in_other(): void {
+        $scrubbed = scrubber::scrubEventData([
+            'eventname' => '\\example\\event\\created',
+            'other' => ['value' => 'SECRET_UNDER_GENERIC_KEY', 'count' => 3],
+        ]);
+
+        $this->assertSame('***', $scrubbed['other']['value']);
+        $this->assertSame(3, $scrubbed['other']['count']);
+    }
+
+    public function test_scrubeventdata_decodes_and_scrubs_json_in_other(): void {
+        $scrubbed = scrubber::scrubEventData([
+            'other' => ['payload' => '{"token":"SECRET_TOKEN","enabled":true}'],
+        ]);
+
+        $this->assertSame('***', $scrubbed['other']['payload']['token']);
+        $this->assertTrue($scrubbed['other']['payload']['enabled']);
+    }
 }
