@@ -59,4 +59,10 @@ class noop_by_default_test extends \advanced_testcase {
 
         $this->assertEquals(1, get_config('tool_tracy', 'restricttoadmins'));
     }
+
+    public function test_handlerownership_defaults_to_moodle(): void {
+        $this->resetAfterTest();
+
+        $this->assertSame('moodle', get_config('tool_tracy', 'handlerownership'));
+    }
 }

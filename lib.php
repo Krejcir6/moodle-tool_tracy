@@ -31,6 +31,7 @@ defined('MOODLE_INTERNAL') || die();
  */
 function tool_tracy_after_config(): void {
     $alreadyenabled = class_exists(\Tracy\Debugger::class, false);
+    $tracyhandlers = get_config('tool_tracy', 'handlerownership') === 'tracy';
 
     if (!$alreadyenabled) {
         if (empty(get_config('tool_tracy', 'enabled'))) {
@@ -39,7 +40,8 @@ function tool_tracy_after_config(): void {
 
         \tool_tracy\bootstrap::enable(
             get_config('tool_tracy', 'mode') ?: null,
-            get_config('tool_tracy', 'logdirectory') ?: null
+            get_config('tool_tracy', 'logdirectory') ?: null,
+            $tracyhandlers
         );
 
         if (!class_exists(\Tracy\Debugger::class, false)) {
@@ -51,9 +53,9 @@ function tool_tracy_after_config(): void {
     // enable() from config.php — see bootstrap::refreshCfgScrubbing().
     \tool_tracy\bootstrap::refreshCfgScrubbing();
 
-    // Tracy must be the active handler regardless of which path enabled it.
-    $hijacked = \tool_tracy\bootstrap::hijackedHandlers();
-    if ($hijacked !== []) {
+    // Low-level activation owns handlers during early bootstrap. Moodle then
+    // installs its own; reclaim them only when explicitly configured to do so.
+    if ($tracyhandlers && \tool_tracy\bootstrap::hijackedHandlers() !== []) {
         \tool_tracy\bootstrap::reclaimHandlers();
     }
 

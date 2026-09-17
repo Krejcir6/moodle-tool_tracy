@@ -66,21 +66,22 @@ and optional **Log directory**. `tool_tracy_after_config()` applies these
 once `$USER`/session exist — later than the low-level path, but with zero
 file edits.
 
-### Tracy always ends up in control of errors, either way
+### Choosing who handles errors after bootstrap
 
 PHP only ever has one active exception/error handler at a time — no
 stacking. Moodle's own `lib/setup.php` unconditionally calls
 `set_exception_handler('default_exception_handler')`/`set_error_handler('default_error_handler', ...)`
 as part of its own bootstrap, which — if the low-level path enabled Tracy
-earlier, from `config.php` — silently takes the handlers back for the rest
-of the request. `tool_tracy_after_config()` detects this
-(`bootstrap::hijackedHandlers()`) and reclaims them right back
-(`bootstrap::reclaimHandlers()`), unconditionally, regardless of which
-path enabled Tracy. You'll see a purely informational "Tracy handlers
-reclaimed" bar panel when this happens — by the time it's shown, the
-handlers are already Tracy's again.
+earlier, from `config.php` — takes the handlers back for the rest of the
+request. The **Error handler ownership** setting decides what happens next:
 
-Before handing off, `reclaimHandlers()` calls
+- **Moodle handlers** (default) preserve Moodle-specific AJAX error
+  responses, redirects, rendering, logging, and exit semantics. Tracy still
+  covers early bootstrap and fatal shutdown errors and renders its debug bar.
+- **Tracy handlers** make `tool_tracy_after_config()` reclaim the handlers,
+  providing Tracy bluescreens for uncaught post-bootstrap exceptions too.
+
+When Tracy owns exceptions, `reclaimHandlers()` calls
 `bootstrap::abortOpenTransactions()`, which mirrors the one thing worth
 keeping from Moodle's own handler: `default_exception_handler()`'s first
 line is `abort_all_db_transactions()`, because an exception handler must
@@ -121,6 +122,12 @@ need feeding, since neither alone covers everything:
   `Debugger::dump()`/`dumpe()` (ad-hoc debug calls a developer writes in
   code) respect; it does not accept a scrubber callable at all.
 
+When a log directory is configured, Tracy can persist URLs, user
+identifiers, exception messages, stack traces, arguments, and request
+context outside Moodle-managed database storage. The administrator controls
+the directory's access, retention, and deletion. Keep it outside the web
+root and apply an appropriate retention policy.
+
 **`bdump()` needed a third fix.** `Tracy\Debugger::barDump()` — what
 Tracy's own `bdump()` shortcut calls — applies *neither* of the above by
 default; it was found live, the hard way, that `bdump($CFG)` rendered
@@ -156,9 +163,10 @@ converges to the same thing either way.
 
 ## Debug bar panels
 
-- **Routing** (`routing_panel`) — method/URL (from `$_SERVER`, not
-  `$PAGE->url`), page type/layout/heading/context/course. Sensitive-looking
-  query params (`sesskey`, ...) are masked with the same `scrubber`.
+- **Routing** (`routing_panel`) — method/path (from `$_SERVER`, not
+  `$PAGE->url`), page type/layout/heading/context/course, plus parameters
+  read exclusively from `$_GET`. It never reads POST/raw bodies, uploads,
+  or cookies. Sensitive-looking GET keys are masked recursively.
 - **User** (`user_panel`) — a full scrubbed dump of `$USER`, not a
   hand-picked field list (see "Sensitive data" above for why that pattern
   is preferred), plus `isloggedin()`/`isguestuser()`/`is_siteadmin()`.
@@ -200,14 +208,15 @@ ever writes to the error log — confirmed by reading
 `function_exists()`-guarded call — inert on any site that hasn't applied
 it, so it's safe to leave in a shared dev image.
 
-Deliberately **SQL text only, no query params**. An earlier version of
+Deliberately **SQL text only, no separate query-parameter array**. An earlier version of
 this patch also captured param values (needing a second hook point in
 `fix_sql_params()` to catch them before Moodle rewrites them positional,
 plus scrubbing, plus correlation logic to match the two back together) —
-more complexity than it was worth. The SQL text itself only ever contains
-placeholder syntax (`:password`, `?`), never literal values, so there was
-nothing to protect in the first place once params were dropped from the
-picture; see git history/ROADMAP.md if you want the full reasoning.
+more complexity than it was worth. Correctly parameterised Moodle queries
+normally contain placeholders (`:password`, `?`), but SQL written with
+literal values retains those values in `$this->last_sql`. Treat the optional
+per-query panel as potentially sensitive development output; see git
+history/ROADMAP.md for the full reasoning.
 
 Slow queries are highlighted amber (&ge;5ms) or red (&ge;20ms); queries
 whose exact SQL text repeats &ge;5&times; in one request (a classic N+1
@@ -301,9 +310,11 @@ default.
 - No cookie/IP allowlist wiring for production mode yet — pass an explicit
   `$mode` if you need per-deployment control, or rely on Tracy's own
   detection (`'detect'` / the "Auto-detect" admin setting).
-- The high-level path only affects `$showBar`/logging/email the way
-  `Debugger::enable()` normally does; it does not add any Moodle-specific
-  error routing on top.
+- Error handler ownership is configurable. With the default Moodle ownership,
+  the high-level path keeps Moodle's exception/error routing while Tracy
+  still provides its debug bar and fatal shutdown handling. Selecting Tracy
+  ownership replaces Moodle's post-bootstrap handlers and provides Tracy
+  bluescreens for uncaught exceptions.
 - `scrubber`'s strict pattern is broad by design (safety over convenience)
   but is still just a regex over key names — it can't catch a secret that
   ends up under an innocuous-looking key.

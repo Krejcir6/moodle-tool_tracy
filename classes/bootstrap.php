@@ -53,8 +53,13 @@ final class bootstrap
      * @param string|bool|null $mode 'development', 'production', or null/'detect'
      *                                to auto-detect. A raw Tracy\Debugger bool works too.
      * @param string|null $logDirectory Absolute path Tracy logs to, or null to disable.
+     * @param bool $keepHandlers Whether Tracy should remain the active exception/error handler.
      */
-    public static function enable(string|bool|null $mode = null, ?string $logDirectory = null): void
+    public static function enable(
+        string|bool|null $mode = null,
+        ?string $logDirectory = null,
+        bool $keepHandlers = true
+    ): void
     {
         if (!class_exists(\Tracy\Debugger::class)) {
             return;
@@ -67,7 +72,13 @@ final class bootstrap
                 default => \Tracy\Debugger::Detect,
             };
         }
+        $handlers = $keepHandlers ? null : self::captureHandlers();
+
         \Tracy\Debugger::enable($mode, $logDirectory);
+
+        if ($handlers !== null) {
+            self::restoreHandlers($handlers);
+        }
         \Tracy\Debugger::$strictMode = true;
         \Tracy\Debugger::$showBar = PHP_SAPI !== 'cli';
 
@@ -76,6 +87,32 @@ final class bootstrap
         // called again once that's done. This call only matters for a
         // crash in the narrow window before then.
         self::refreshCfgScrubbing();
+    }
+
+    /**
+     * Captures the currently active PHP handlers without changing them.
+     *
+     * @return array{exception: callable|null, error: callable|null}
+     */
+    public static function captureHandlers(): array
+    {
+        $exceptionHandler = set_exception_handler(static fn () => null);
+        set_exception_handler($exceptionHandler);
+
+        $errorHandler = set_error_handler(static fn () => false);
+        set_error_handler($errorHandler);
+
+        return [
+            'exception' => $exceptionHandler,
+            'error' => $errorHandler,
+        ];
+    }
+
+    /** @param array{exception: callable|null, error: callable|null} $handlers */
+    public static function restoreHandlers(array $handlers): void
+    {
+        set_exception_handler($handlers['exception']);
+        set_error_handler($handlers['error']);
     }
 
     /**

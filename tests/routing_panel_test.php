@@ -25,14 +25,23 @@ namespace tool_tracy;
  */
 class routing_panel_test extends \basic_testcase {
     private ?array $server;
+    private array $get;
+    private array $post;
+    private array $cookie;
 
     protected function setUp(): void {
         parent::setUp();
         $this->server = $_SERVER;
+        $this->get = $_GET;
+        $this->post = $_POST;
+        $this->cookie = $_COOKIE;
     }
 
     protected function tearDown(): void {
         $_SERVER = $this->server;
+        $_GET = $this->get;
+        $_POST = $this->post;
+        $_COOKIE = $this->cookie;
         parent::tearDown();
     }
 
@@ -43,6 +52,7 @@ class routing_panel_test extends \basic_testcase {
     public function test_masks_sensitive_looking_query_param(): void {
         $_SERVER['REQUEST_URI'] = '/admin/index.php?sesskey=THE_REAL_SESSKEY_VALUE&id=5';
         $_SERVER['REQUEST_METHOD'] = 'GET';
+        $_GET = ['sesskey' => 'THE_REAL_SESSKEY_VALUE', 'id' => '5'];
 
         $panel = (new routing_panel())->getPanel();
 
@@ -53,10 +63,35 @@ class routing_panel_test extends \basic_testcase {
     public function test_leaves_ordinary_query_params_alone(): void {
         $_SERVER['REQUEST_URI'] = '/course/view.php?id=5';
         $_SERVER['REQUEST_METHOD'] = 'GET';
+        $_GET = ['id' => '5'];
 
         $panel = (new routing_panel())->getPanel();
 
-        $this->assertStringContainsString('id=5', $panel);
+        $this->assertStringContainsString('id', $panel);
+        $this->assertStringContainsString('5', $panel);
+    }
+
+    public function test_masks_nested_sensitive_get_param(): void {
+        $_SERVER['REQUEST_URI'] = '/callback.php?data%5Btoken%5D=THE_REAL_TOKEN';
+        $_SERVER['REQUEST_METHOD'] = 'GET';
+        $_GET = ['data' => ['token' => 'THE_REAL_TOKEN']];
+
+        $panel = (new routing_panel())->getPanel();
+
+        $this->assertStringNotContainsString('THE_REAL_TOKEN', $panel);
+        $this->assertStringContainsString('token', $panel);
+    }
+
+    public function test_does_not_render_post_or_cookie_values(): void {
+        $_SERVER['REQUEST_URI'] = '/callback.php?id=5';
+        $_GET = ['id' => '5'];
+        $_POST = ['ordinary' => 'POST_VALUE_MUST_NOT_APPEAR'];
+        $_COOKIE = ['ordinary' => 'COOKIE_VALUE_MUST_NOT_APPEAR'];
+
+        $panel = (new routing_panel())->getPanel();
+
+        $this->assertStringNotContainsString('POST_VALUE_MUST_NOT_APPEAR', $panel);
+        $this->assertStringNotContainsString('COOKIE_VALUE_MUST_NOT_APPEAR', $panel);
     }
 
     public function test_falls_back_to_cli_label_without_request_uri(): void {

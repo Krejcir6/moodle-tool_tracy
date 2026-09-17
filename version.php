@@ -24,8 +24,8 @@
 
 defined('MOODLE_INTERNAL') || die();
 
-$plugin->version = 2026091700; // Bumped: new db/events.php needs an upgrade to register.
+$plugin->version = 2026091701;
 $plugin->requires = 2022112800; // Moodle 4.1+.
 $plugin->component = 'tool_tracy';
 $plugin->maturity = MATURITY_ALPHA;
-$plugin->release = '0.1.0';
+$plugin->release = '0.2.0';

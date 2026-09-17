@@ -113,6 +113,23 @@ class bootstrap_test extends \basic_testcase {
     /**
      * @runInSeparateProcess
      */
+    public function test_enable_can_restore_the_handlers_active_before_tracy(): void {
+        $exceptionHandler = static function (\Throwable $e): void {
+        };
+        $errorHandler = static fn (): bool => false;
+        set_exception_handler($exceptionHandler);
+        set_error_handler($errorHandler);
+
+        bootstrap::enable('development', null, false);
+
+        $current = bootstrap::captureHandlers();
+        $this->assertSame($exceptionHandler, $current['exception']);
+        $this->assertSame($errorHandler, $current['error']);
+    }
+
+    /**
+     * @runInSeparateProcess
+     */
     public function test_reclaimhandlers_takes_the_handlers_back_from_moodle(): void {
         bootstrap::enable('development');
 

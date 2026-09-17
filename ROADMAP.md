@@ -16,21 +16,19 @@ default, not an opt-in.
       default (`restricttoadmins = 1`).
 - [x] `Debugger::$strictMode = true` — no error silently downgraded to a
       log line if it can be a bluescreen instead.
-- [x] Handler-hijack detection, **and reclaiming**: Tracy must be the
-      active exception/error handler regardless of which activation path
-      enabled it. `bootstrap::reclaimHandlers()`, called unconditionally
-      from `tool_tracy_after_config()` on every request whenever
-      `hijackedHandlers()` finds anything, takes them straight back from
-      Moodle's `default_exception_handler`/`default_error_handler` —
+- [x] Handler-hijack detection and **optional reclaiming**. The
+      `handlerownership` setting defaults to `moodle`, preserving Moodle's
+      AJAX responses, redirects, rendering, logging, and exit semantics.
+      Selecting `tracy` makes `bootstrap::reclaimHandlers()` take the
+      handlers back from Moodle's `default_exception_handler`/
+      `default_error_handler` —
       reimplementing the two lines `Debugger::enable()` itself uses
       (`exceptionHandler()`/`errorHandler()` are `public static`), since
-      calling `enable()` again no-ops once already enabled. `handler_check_panel`
-      is now purely informational ("reclaimed", not "hijacked" — by the
-      time it's shown, Tracy already has the handlers back). This reverses
-      an earlier decision (see "Explicitly out of scope", now removed) —
-      the original "just report it" design left the low-level path
-      catching nothing for the entire rest of a normal page render, which
-      defeated its own point.
+      calling `enable()` again no-ops once already enabled. High-level
+      activation snapshots and restores the active Moodle handlers when
+      Moodle ownership is selected; low-level activation keeps Tracy during
+      early bootstrap and then leaves Moodle's handlers in control unless
+      reclaiming was explicitly selected.
       - **Before reclaiming, keeps one piece of what Moodle's own handler
         did**: `default_exception_handler()`'s first line is
         `abort_all_db_transactions()` — an exception handler must never
@@ -94,11 +92,11 @@ default, not an opt-in.
 Goal: once the base is solid, make Tracy genuinely useful for day-to-day
 Moodle development, not just crash reporting.
 
-- [x] **Routing panel** (`routing_panel`) — method + URL from `$_SERVER`
+- [x] **Routing panel** (`routing_panel`) — method + path from `$_SERVER`
       (not `$PAGE->url`, which isn't reliably set yet when this could run),
-      `$PAGE` type/layout/heading/context/course. Query string params with
-      sensitive-looking names (`sesskey`, `token`, ...) are masked via the
-      same `scrubber` pattern, reused rather than reinvented.
+      `$PAGE` type/layout/heading/context/course. Parameters are read only
+      from `$_GET`; POST/raw bodies, uploads, and cookies are never inspected.
+      Sensitive-looking names (`sesskey`, `token`, ...) are masked recursively.
 - [x] **User panel** (`user_panel`) — deliberately a full scrubbed dump of
       `$USER` (`bootstrap::scrubbedDumpOptions()`) rather than a hand-picked
       field list, same reasoning as `$CFG`: any auth/SSO/profile-field
@@ -135,11 +133,12 @@ Moodle development, not just crash reporting.
         with a literal `password` param that leaked in full when only
         `query_log()` was hooked) plus FIFO correlation logic to match the
         two hooks' data back together by exact SQL text.
-      - Simplified to **SQL text + timing only, single hook, no params
+      - Simplified to **SQL text + timing only, single hook, no separate params
         column** — simpler than the params version needed to be, since
         params were the *only* reason two hook points and correlation
-        existed. SQL text itself is just placeholder syntax
-        (`:password`, `?`), so there's nothing left to protect.
+        existed. Correctly parameterised SQL normally contains placeholders,
+        but literal values remain visible, so the panel is documented as
+        potentially sensitive development output.
       - The patch's insertion point (`query_log()`, right after
         `$time = $this->query_time();`) has been unchanged in core since
         2014 per `git blame` — good evidence for cross-version

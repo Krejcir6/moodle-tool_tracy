@@ -83,6 +83,27 @@ final class scrubber
         return array_values(array_unique(array_merge($common, $extraExactKeys)));
     }
 
+    /**
+     * Recursively masks sensitive keys in request-style arrays.
+     *
+     * @param array<mixed> $values
+     * @return array<mixed>
+     */
+    public static function scrubArray(array $values, string $level = self::LEVEL_STRICT): array
+    {
+        $scrub = self::forLevel($level);
+
+        foreach ($values as $key => $value) {
+            if (is_string($key) && $scrub($key, $value)) {
+                $values[$key] = '***';
+            } elseif (is_array($value)) {
+                $values[$key] = self::scrubArray($value, $level);
+            }
+        }
+
+        return $values;
+    }
+
     private static function pattern(string $level): string
     {
         if ($level === self::LEVEL_MODERATE) {

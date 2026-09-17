@@ -23,7 +23,9 @@
  * SQL text and timing only, deliberately no params: params would need
  * masking (a second core hook in fix_sql_params() to catch them before
  * losing their names — see git history/ROADMAP.md), more complexity than
- * it was worth. SQL text itself is just placeholder syntax, no values.
+ * it was worth. Correctly parameterised SQL normally contains placeholders,
+ * but literal values written directly into SQL remain visible and must be
+ * treated as potentially sensitive development output.
  *
  * function_exists()-guarded like bdump.php's replacements: inert unless
  * the patch is applied.

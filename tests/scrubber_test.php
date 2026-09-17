@@ -130,4 +130,20 @@ class scrubber_test extends \basic_testcase {
 
         $this->assertContains('wwwroot', $keys);
     }
+
+    public function test_scrubarray_masks_sensitive_keys_recursively(): void {
+        $values = [
+            'id' => '5',
+            'data' => [
+                'token' => 'secret-token',
+                'label' => 'visible',
+            ],
+        ];
+
+        $scrubbed = scrubber::scrubArray($values);
+
+        $this->assertSame('5', $scrubbed['id']);
+        $this->assertSame('***', $scrubbed['data']['token']);
+        $this->assertSame('visible', $scrubbed['data']['label']);
+    }
 }

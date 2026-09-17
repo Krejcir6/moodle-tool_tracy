@@ -70,12 +70,22 @@ final class routing_panel implements \Tracy\IBarPanel
             $html .= '<tr><th>' . htmlspecialchars($label, ENT_QUOTES) . '</th>'
                 . '<td>' . htmlspecialchars((string) $value, ENT_QUOTES) . '</td></tr>';
         }
-        $html .= '</table></div>';
+        $html .= '</table>';
+
+        if ($_GET !== []) {
+            $html .= '<h2>GET parameters</h2>';
+            $html .= \Tracy\Dumper::toHtml(
+                scrubber::scrubArray($_GET),
+                bootstrap::scrubbedDumpOptions()
+            );
+        }
+
+        $html .= '</div>';
 
         return $html;
     }
 
-    /** $_SERVER['REQUEST_URI'] with sensitive-looking query params (sesskey, ...) masked. */
+    /** Request path only. GET parameters are rendered separately from $_GET. */
     private function path(): string
     {
         $host = $_SERVER['HTTP_HOST'] ?? null;
@@ -85,20 +95,7 @@ final class routing_panel implements \Tracy\IBarPanel
             return 'CLI (PID ' . getmypid() . ')';
         }
 
-        [$path, $query] = array_pad(explode('?', $uri, 2), 2, null);
-
-        if ($query !== null && $query !== '') {
-            parse_str($query, $params);
-            if ($params !== []) {
-                $scrub = scrubber::forLevel();
-                foreach ($params as $key => $value) {
-                    if (is_string($key) && $scrub($key, $value)) {
-                        $params[$key] = '***';
-                    }
-                }
-                $path .= '?' . http_build_query($params);
-            }
-        }
+        $path = explode('?', $uri, 2)[0];
 
         return $host !== null ? "//{$host}{$path}" : $path;
     }

@@ -56,6 +56,17 @@ if ($hassiteconfig) {
         PARAM_PATH
     ));
 
+    $settings->add(new admin_setting_configselect(
+        'tool_tracy/handlerownership',
+        get_string('handlerownership', 'tool_tracy'),
+        get_string('handlerownership_desc', 'tool_tracy'),
+        'moodle',
+        [
+            'moodle' => get_string('handlerownership_moodle', 'tool_tracy'),
+            'tracy' => get_string('handlerownership_tracy', 'tool_tracy'),
+        ]
+    ));
+
     $settings->add(new admin_setting_configcheckbox(
         'tool_tracy/restricttoadmins',
         get_string('restricttoadmins', 'tool_tracy'),

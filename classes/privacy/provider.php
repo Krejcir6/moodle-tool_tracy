@@ -24,10 +24,23 @@
 
 namespace tool_tracy\privacy;
 
-use core_privacy\local\metadata\null_provider;
+use core_privacy\local\metadata\collection;
+use core_privacy\local\metadata\provider as metadata_provider;
 
-class provider implements null_provider {
-    public static function get_reason(): string {
-        return 'privacy:metadata';
+class provider implements metadata_provider {
+    public static function get_metadata(collection $collection): collection {
+        $collection->add_external_location_link(
+            'tracy_log_directory',
+            [
+                'requesturl' => 'privacy:metadata:log:requesturl',
+                'userid' => 'privacy:metadata:log:userid',
+                'exception' => 'privacy:metadata:log:exception',
+                'stacktrace' => 'privacy:metadata:log:stacktrace',
+                'context' => 'privacy:metadata:log:context',
+            ],
+            'privacy:metadata:log'
+        );
+
+        return $collection;
     }
 }
