@@ -196,6 +196,6 @@ Moodle development, not just crash reporting.
 
 ## Explicitly out of scope for now
 
-- Cookie/IP allowlist wiring for Tracy's production-mode detection — its
-  own detection is used as-is.
+- Trusted proxy and advanced IP allowlist handling beyond Moodle's
+  `getremoteaddr()` configuration.
 - Controlled Tracy file logging with retention and privacy management.

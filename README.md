@@ -1,7 +1,7 @@
 # tool_tracy
 
 Integrates the [Tracy](https://tracy.nette.org) debugger into Moodle: bluescreen
-on uncaught errors/exceptions, the debug bar, and file logging.
+on uncaught errors/exceptions and the debug bar.
 
 ## Installation
 
@@ -23,11 +23,9 @@ lifecycle. That's why `classes/bootstrap.php` is written to be safe to
 `require` directly from `config.php`, with no dependency on `$DB`,
 autoloading, or anything else Moodle normally provides.
 
-`lib.php`'s `tool_tracy_after_config()` is a regular Moodle plugin
-callback (invoked once `$USER`/session are available). It does two things:
-it's the *high-level* activation path (see below), and — regardless of
-which path enabled Tracy — it restricts the debug bar to admins when
-Tracy is in production mode.
+`lib.php`'s `tool_tracy_after_config()` is a regular Moodle plugin callback
+(invoked once `$USER`/session are available). It is the standard activation
+path and applies the configured activation scope.
 
 ## Standard activation
 
@@ -133,7 +131,7 @@ need feeding, since neither alone covers everything:
   `Debugger::dump()`/`dumpe()` (ad-hoc debug calls a developer writes in
   code) respect; it does not accept a scrubber callable at all.
 
-When a log directory is configured, Tracy can persist URLs, user
+The experimental low-level API can optionally persist URLs, user
 identifiers, exception messages, stack traces, arguments, and request
 context outside Moodle-managed database storage. The administrator controls
 the directory's access, retention, and deletion. Keep it outside the web
@@ -318,9 +316,9 @@ default.
 
 ## Known limitations (skeleton, not production-hardened)
 
-- No cookie/IP allowlist wiring for production mode yet — pass an explicit
-  `$mode` if you need per-deployment control, or rely on Tracy's own
-  detection (`'detect'` / the "Auto-detect" admin setting).
+- The standard activation mode has an optional IP allowlist. Trusted proxy
+  handling follows Moodle's `getremoteaddr()` configuration; custom proxy
+  header handling is not provided.
 - Error handler ownership is configurable. With the default Moodle ownership,
   the high-level path keeps Moodle's exception/error routing while Tracy
   still provides its debug bar and fatal shutdown handling. Selecting Tracy

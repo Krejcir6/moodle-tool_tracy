@@ -28,6 +28,27 @@ function tool_tracy_security_checks(): array {
     return [new \tool_tracy\check\activation()];
 }
 
+function tool_tracy_activationmode_updated(string $fullname): void {
+    global $CFG, $DB;
+
+    if (get_config('tool_tracy', 'activationmode') === 'off') {
+        return;
+    }
+
+    $record = $DB->get_record('tool_tracy_deploy', [], '*', IGNORE_MULTIPLE);
+    $data = (object) [
+        'wwwroot' => tool_tracy_normalize_root($CFG->wwwroot),
+        'timecreated' => time(),
+    ];
+    if ($record === false) {
+        $DB->insert_record('tool_tracy_deploy', $data);
+        return;
+    }
+
+    $data->id = $record->id;
+    $DB->update_record('tool_tracy_deploy', $data);
+}
+
 /**
  * Standard activation path. Tracy is enabled per request according to the
  * activation mode, once $USER/session exist.

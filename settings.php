@@ -30,7 +30,7 @@ if ($hassiteconfig) {
     $settings = new admin_settingpage('tool_tracy', get_string('pluginname', 'tool_tracy'));
     $ADMIN->add('tools', $settings);
 
-    $settings->add(new admin_setting_configselect(
+    $activationmode = new admin_setting_configselect(
         'tool_tracy/activationmode',
         get_string('activationmode', 'tool_tracy'),
         get_string('activationmode_desc', 'tool_tracy'),
@@ -40,7 +40,9 @@ if ($hassiteconfig) {
             'admins' => get_string('activationmode_admins', 'tool_tracy'),
             'all' => get_string('activationmode_all', 'tool_tracy'),
         ]
-    ));
+    );
+    $activationmode->set_updatedcallback('tool_tracy_activationmode_updated');
+    $settings->add($activationmode);
 
     $settings->add(new admin_setting_configiplist(
         'tool_tracy/activationips',
