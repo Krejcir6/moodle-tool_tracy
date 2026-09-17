@@ -42,25 +42,6 @@ if ($hassiteconfig) {
         ]
     ));
 
-    $settings->add(new admin_setting_configselect(
-        'tool_tracy/mode',
-        get_string('mode', 'tool_tracy'),
-        get_string('mode_desc', 'tool_tracy'),
-        'detect',
-        [
-            'detect' => get_string('mode_detect', 'tool_tracy'),
-            'development' => get_string('mode_development', 'tool_tracy'),
-            'production' => get_string('mode_production', 'tool_tracy'),
-        ]
-    ));
-
-    $settings->add(new admin_setting_configtext(
-        'tool_tracy/logdirectory',
-        get_string('logdirectory', 'tool_tracy'),
-        get_string('logdirectory_desc', 'tool_tracy'),
-        '',
-        PARAM_PATH
-    ));
 
     $settings->add(new admin_setting_configselect(
         'tool_tracy/handlerownership',

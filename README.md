@@ -34,6 +34,8 @@ Tracy is in production mode.
 The admin setting **Tracy activation** controls both activation and debug bar
 visibility. It defaults to **Administrators only**. Choose **Disabled** in
 production; choose **All users** only for controlled development diagnostics.
+The Tracy display mode is selected internally for this development-focused
+plugin. File logging is disabled in this milestone.
 
 The standard activation happens after Moodle bootstrap, once the current user
 is known. Requests from users outside the selected scope are left entirely to

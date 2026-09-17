@@ -27,6 +27,7 @@ namespace tool_tracy;
  */
 class database_panel_test extends \basic_testcase {
     public function test_gettab_contains_svg_icon(): void {
+        bootstrap::enable('development');
         $this->assertStringContainsString('<svg', (new database_panel())->getTab());
     }
 

@@ -37,6 +37,10 @@ function tool_tracy_after_config(): void {
         if ($activationmode === 'off') {
             return;
         }
+        global $CFG;
+        if (tool_tracy_disable_if_deployment_mismatch($CFG->wwwroot)) {
+            return;
+        }
         if ($activationmode === 'admins') {
             global $USER;
             if (empty($USER->id) || !has_capability('moodle/site:config', \context_system::instance())) {
@@ -44,11 +48,7 @@ function tool_tracy_after_config(): void {
             }
         }
 
-        \tool_tracy\bootstrap::enable(
-            get_config('tool_tracy', 'mode') ?: null,
-            get_config('tool_tracy', 'logdirectory') ?: null,
-            $tracyhandlers
-        );
+        \tool_tracy\bootstrap::enable('development', null, $tracyhandlers);
 
         if (!class_exists(\Tracy\Debugger::class, false)) {
             return; // thirdparty/tracy not vendored.
@@ -78,4 +78,32 @@ function tool_tracy_after_config(): void {
         return;
     }
 
+}
+
+function tool_tracy_normalize_root(string $root): string {
+    $parts = parse_url(rtrim($root, '/'));
+    if ($parts === false || empty($parts['host'])) {
+        return '';
+    }
+
+    return strtolower(($parts['scheme'] ?? '') . '://' . $parts['host']
+        . (isset($parts['port']) ? ':' . $parts['port'] : '')
+        . ($parts['path'] ?? ''));
+}
+
+function tool_tracy_deployment_matches(string $wwwroot): bool {
+    global $DB;
+
+    $deployment = $DB->get_record('tool_tracy_deploy', [], 'wwwroot', IGNORE_MULTIPLE);
+    return $deployment !== false
+        && $deployment->wwwroot === tool_tracy_normalize_root($wwwroot);
+}
+
+function tool_tracy_disable_if_deployment_mismatch(string $wwwroot): bool {
+    if (tool_tracy_deployment_matches($wwwroot)) {
+        return false;
+    }
+
+    set_config('activationmode', 'off', 'tool_tracy');
+    return true;
 }

@@ -46,14 +46,6 @@ class noop_by_default_test extends \advanced_testcase {
         $this->assertSame('admins', get_config('tool_tracy', 'activationmode') ?: 'admins');
     }
 
-    public function test_mode_setting_defaults_to_detect_not_development(): void {
-        $this->resetAfterTest();
-
-        // 'development' would show full error detail; 'detect' is the safe
-        // default to pair with the administrators-only activation mode.
-        $this->assertSame('detect', get_config('tool_tracy', 'mode'));
-    }
-
     public function test_handlerownership_defaults_to_moodle(): void {
         $this->resetAfterTest();
 

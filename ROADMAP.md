@@ -13,7 +13,8 @@ default, not an opt-in.
 - [x] Tracy vendored under `thirdparty/tracy/`, pinned version, per Moodle's
       third-party library policy — not pulled in via Composer at runtime.
 - [x] Safe defaults: standard activation is **administrators only**;
-      `mode` defaults to `detect` (never forces development mode on).
+      Tracy uses its internal development mode when standard activation is
+      enabled; the mode is no longer exposed as a second admin switch.
 - [x] `Debugger::$strictMode = true` — no error silently downgraded to a
       log line if it can be a bluescreen instead.
 - [x] Handler-hijack detection and **optional reclaiming**. The
@@ -76,7 +77,7 @@ default, not an opt-in.
       (non-security) double-escaping bug in `handler_check_panel::getPanel()`.
 - [x] `handler_check_panel` rendering test — see above.
 - [x] No-op-by-default check: `tests/noop_by_default_test.php` locks in the
-      admin setting defaults (`activationmode=admins`, `mode=detect`,
+      admin setting defaults (`activationmode=admins`,
       `handlerownership=moodle`) at the PHPUnit level. The deeper claim — a real
       request produces zero Tracy footprint when config.php has no
       low-level `enable()` call — can't be verified by a PHPUnit test in
@@ -197,3 +198,4 @@ Moodle development, not just crash reporting.
 
 - Cookie/IP allowlist wiring for Tracy's production-mode detection — its
   own detection is used as-is.
+- Controlled Tracy file logging with retention and privacy management.
