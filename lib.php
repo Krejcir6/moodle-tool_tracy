@@ -73,7 +73,7 @@ function tool_tracy_after_config(): void {
             }
         }
         $activationips = trim((string) get_config('tool_tracy', 'activationips'));
-        $tracymode = $activationips === '' ? 'development' : $activationips;
+        $tracymode = tool_tracy_client_ip_is_allowed($activationips) ? 'development' : 'production';
 
         \tool_tracy\bootstrap::enable($tracymode, null, $tracyhandlers);
 
@@ -105,6 +105,10 @@ function tool_tracy_after_config(): void {
         return;
     }
 
+}
+
+function tool_tracy_client_ip_is_allowed(string $activationips): bool {
+    return $activationips === '' || remoteip_in_list($activationips);
 }
 
 function tool_tracy_normalize_root(string $root): string {
