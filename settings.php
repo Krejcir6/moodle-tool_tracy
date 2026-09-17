@@ -42,6 +42,14 @@ if ($hassiteconfig) {
         ]
     ));
 
+    $settings->add(new admin_setting_configiplist(
+        'tool_tracy/activationips',
+        get_string('activationips', 'tool_tracy'),
+        get_string('activationips_desc', 'tool_tracy'),
+        '',
+        PARAM_RAW
+    ));
+
 
     $settings->add(new admin_setting_configselect(
         'tool_tracy/handlerownership',

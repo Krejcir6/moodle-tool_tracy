@@ -47,6 +47,10 @@ function tool_tracy_after_config(): void {
                 return;
             }
         }
+        $activationips = trim((string) get_config('tool_tracy', 'activationips'));
+        if ($activationips !== '' && !address_in_subnet(getremoteaddr(), $activationips)) {
+            return;
+        }
 
         \tool_tracy\bootstrap::enable('development', null, $tracyhandlers);
 
