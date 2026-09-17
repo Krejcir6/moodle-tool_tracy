@@ -24,6 +24,10 @@
 
 defined('MOODLE_INTERNAL') || die();
 
+function tool_tracy_security_checks(): array {
+    return [new \tool_tracy\check\activation()];
+}
+
 /**
  * Standard activation path. Tracy is enabled per request according to the
  * activation mode, once $USER/session exist.
