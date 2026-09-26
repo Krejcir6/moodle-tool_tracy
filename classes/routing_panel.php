@@ -27,14 +27,12 @@
 
 namespace tool_tracy;
 
-final class routing_panel implements \Tracy\IBarPanel
-{
-    public function getTab(): string
-    {
-        $method = $_SERVER['REQUEST_METHOD'] ?? 'CLI';
+final class routing_panel implements \Tracy\IBarPanel {
+    public function getTab(): string {
+        $method = $_SERVER['REQUEST_METHOD'] ?? get_string('routing_cli', 'tool_tracy');
         $path = $this->shorten($this->path());
 
-        return '<span title="Current request">'
+        return '<span title="' . htmlspecialchars(get_string('routing_request', 'tool_tracy'), ENT_QUOTES) . '">'
             . '<svg viewBox="0 0 24 24" width="16" height="16">'
             . '<circle cx="12" cy="12" r="9" fill="none" stroke="#6ba9e6" stroke-width="1.6"/>'
             . '<path d="M12 3v3M12 18v3M3 12h3M18 12h3" stroke="#6ba9e6" stroke-width="1.6"/>'
@@ -44,25 +42,24 @@ final class routing_panel implements \Tracy\IBarPanel
             . '</span>';
     }
 
-    public function getPanel(): string
-    {
+    public function getPanel(): string {
         global $PAGE;
 
         $rows = [
-            'Method' => $_SERVER['REQUEST_METHOD'] ?? null,
-            'URL' => $this->path(),
-            'Page type' => $PAGE->pagetype ?? null,
-            'Layout' => $PAGE->pagelayout ?? null,
-            'Heading' => $PAGE->heading ?? null,
-            'Context' => isset($PAGE->context)
+            get_string('routing_method', 'tool_tracy') => $_SERVER['REQUEST_METHOD'] ?? null,
+            get_string('routing_url', 'tool_tracy') => $this->path(),
+            get_string('routing_pagetype', 'tool_tracy') => $PAGE->pagetype ?? null,
+            get_string('routing_layout', 'tool_tracy') => $PAGE->pagelayout ?? null,
+            get_string('routing_heading', 'tool_tracy') => $PAGE->heading ?? null,
+            get_string('routing_context', 'tool_tracy') => isset($PAGE->context)
                 ? $PAGE->context->get_context_name(true, false, false) . ' (id ' . $PAGE->context->id . ')'
                 : null,
-            'Course' => isset($PAGE->course) && $PAGE->course->id
+            get_string('routing_course', 'tool_tracy') => isset($PAGE->course) && $PAGE->course->id
                 ? "{$PAGE->course->shortname} (id {$PAGE->course->id})"
                 : null,
         ];
 
-        $html = '<h1>Routing</h1><div class="tracy-inner"><table>';
+        $html = '<h1>' . htmlspecialchars(get_string('routing_title', 'tool_tracy'), ENT_QUOTES) . '</h1><div class="tracy-inner"><table>';
         foreach ($rows as $label => $value) {
             if ($value === null || $value === '') {
                 continue;
@@ -73,7 +70,7 @@ final class routing_panel implements \Tracy\IBarPanel
         $html .= '</table>';
 
         if ($_GET !== []) {
-            $html .= '<h2>GET parameters</h2>';
+            $html .= '<h2>' . htmlspecialchars(get_string('routing_getparams', 'tool_tracy'), ENT_QUOTES) . '</h2>';
             $html .= \Tracy\Dumper::toHtml(
                 scrubber::scrubArray($_GET),
                 bootstrap::scrubbedDumpOptions()
@@ -86,13 +83,12 @@ final class routing_panel implements \Tracy\IBarPanel
     }
 
     /** Request path only. GET parameters are rendered separately from $_GET. */
-    private function path(): string
-    {
+    private function path(): string {
         $host = $_SERVER['HTTP_HOST'] ?? null;
         $uri = $_SERVER['REQUEST_URI'] ?? null;
 
         if ($uri === null) {
-            return 'CLI (PID ' . getmypid() . ')';
+            return get_string('routing_cli_pid', 'tool_tracy', getmypid());
         }
 
         $path = explode('?', $uri, 2)[0];
@@ -100,8 +96,7 @@ final class routing_panel implements \Tracy\IBarPanel
         return $host !== null ? "//{$host}{$path}" : $path;
     }
 
-    private function shorten(string $path): string
-    {
+    private function shorten(string $path): string {
         return strlen($path) > 60 ? substr($path, 0, 57) . '…' : $path;
     }
 }

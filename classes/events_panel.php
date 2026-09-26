@@ -32,28 +32,26 @@
 
 namespace tool_tracy;
 
-final class events_panel implements \Tracy\IBarPanel
-{
-    public function getTab(): string
-    {
+final class events_panel implements \Tracy\IBarPanel {
+    public function getTab(): string {
         $count = count(event_log::entries());
 
-        return '<span title="Events">'
+        return '<span title="' . htmlspecialchars(get_string('events_title', 'tool_tracy'), ENT_QUOTES) . '">'
             . '<svg viewBox="0 0 24 24" width="16" height="16">'
             . '<path d="M12 3l2.6 5.6 6.1.7-4.5 4.2 1.2 6-5.4-3-5.4 3 1.2-6-4.5-4.2 6.1-.7z" '
             . 'fill="none" stroke="#6ba9e6" stroke-width="1.4"/>'
             . '</svg>'
-            . '<span class="tracy-label">' . $count . ' events</span>'
+            . '<span class="tracy-label">'
+            . htmlspecialchars(get_string('events_tab', 'tool_tracy', $count), ENT_QUOTES) . '</span>'
             . '</span>';
     }
 
-    public function getPanel(): string
-    {
+    public function getPanel(): string {
         $entries = event_log::entries();
 
         if ($entries === []) {
-            return '<h1>Events</h1><div class="tracy-inner">'
-                . '<p>No events triggered during this request.</p></div>';
+            return '<h1>' . htmlspecialchars(get_string('events_title', 'tool_tracy'), ENT_QUOTES) . '</h1><div class="tracy-inner">'
+                . '<p>' . htmlspecialchars(get_string('events_none', 'tool_tracy'), ENT_QUOTES) . '</p></div>';
         }
 
         $groups = [];
@@ -63,7 +61,7 @@ final class events_panel implements \Tracy\IBarPanel
             $groups[$class]['data'] ??= $entry['data'];
         }
 
-        $html = '<h1>Events</h1><div class="tracy-inner">';
+        $html = '<h1>' . htmlspecialchars(get_string('events_title', 'tool_tracy'), ENT_QUOTES) . '</h1><div class="tracy-inner">';
 
         foreach ($groups as $class => $group) {
             $html .= '<h2>' . htmlspecialchars($class, ENT_QUOTES) . ' &times; ' . $group['count'] . '</h2>';
@@ -80,8 +78,7 @@ final class events_panel implements \Tracy\IBarPanel
     }
 
     /** @return array<int, \stdClass> */
-    private function observersFor(string $eventclass): array
-    {
+    private function observersFor(string $eventclass): array {
         $hierarchy = ['\\' . ltrim($eventclass, '\\')];
         $parent = $eventclass;
         while ($parent = get_parent_class($parent)) {
@@ -102,13 +99,12 @@ final class events_panel implements \Tracy\IBarPanel
     }
 
     /** @param array<int, \stdClass> $observers */
-    private function renderObservers(array $observers): string
-    {
+    private function renderObservers(array $observers): string {
         if ($observers === []) {
-            return '<p><em>No observers registered for this event.</em></p>';
+            return '<p><em>' . htmlspecialchars(get_string('events_noobservers', 'tool_tracy'), ENT_QUOTES) . '</em></p>';
         }
 
-        $html = '<table><tr><th>Component</th><th>Callback</th><th>Priority</th></tr>';
+        $html = '<table><tr><th>' . htmlspecialchars(get_string('events_component', 'tool_tracy'), ENT_QUOTES) . '</th><th>' . htmlspecialchars(get_string('events_callback', 'tool_tracy'), ENT_QUOTES) . '</th><th>' . htmlspecialchars(get_string('events_priority', 'tool_tracy'), ENT_QUOTES) . '</th></tr>';
         foreach ($observers as $observer) {
             $html .= '<tr>'
                 . '<td>' . htmlspecialchars((string) $observer->plugin, ENT_QUOTES) . '</td>'

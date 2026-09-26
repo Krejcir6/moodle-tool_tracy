@@ -27,10 +27,8 @@
 
 namespace tool_tracy;
 
-final class observer
-{
-    public static function event_triggered(\core\event\base $event): void
-    {
+final class observer {
+    public static function event_triggered(\core\event\base $event): void {
         if (!class_exists(\Tracy\Debugger::class, false)) {
             return;
         }

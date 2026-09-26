@@ -1,0 +1,19 @@
+diff --git a/public/lib/dml/moodle_database.php b/public/lib/dml/moodle_database.php
+index aba44002cbe..6f776109514 100644
+--- a/public/lib/dml/moodle_database.php
++++ b/public/lib/dml/moodle_database.php
+@@ -519,6 +519,14 @@ abstract class moodle_database {
+ 
+         $time = $this->query_time();
+ 
++        // tool_tracy (optional, dev-only): feeds a per-query debug bar
++        // panel. See <moodleroot>/public/admin/tool/tracy/dev/moodle_database.patch.
++        // Guarded, so this is a no-op unless that plugin defines the
++        // function — inert on any site that hasn't opted in.
++        if (function_exists('tool_tracy_log_query')) {
++            tool_tracy_log_query($this->last_sql, $time, $error);
++        }
++
+         // Will be shown or not depending on MDL_PERF values rather than in dboptions['log*].
+         $this->queriestime = $this->queriestime + $time;
+ 

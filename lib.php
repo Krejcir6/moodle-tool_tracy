@@ -100,11 +100,6 @@ function tool_tracy_after_config(): void {
         $bar->addPanel(new \tool_tracy\database_panel());
         $bar->addPanel(new \tool_tracy\events_panel());
     }
-
-    if (!\Tracy\Debugger::$productionMode) {
-        return;
-    }
-
 }
 
 function tool_tracy_client_ip_is_allowed(string $activationips): bool {

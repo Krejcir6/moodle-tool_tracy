@@ -3,11 +3,20 @@
 Integrates the [Tracy](https://tracy.nette.org) debugger into Moodle: bluescreen
 on uncaught errors/exceptions and the debug bar.
 
+## Requirements
+
+- Moodle 4.5 or later (the vendored Tracy 2.10 needs PHP 8.0-8.4, Moodle 4.5
+  needs PHP 8.1+).
+- Moodle 5.1 and later moved all web-accessible code into a `public/`
+  directory. Wherever this document says `admin/tool/tracy` or `lib/...`,
+  use `public/admin/tool/tracy` and `public/lib/...` on 5.1+.
+
 ## Installation
 
-Clone this repository into `<moodleroot>/admin/tool/tracy` (the directory
-name must be `tracy` — Moodle derives the component name `tool_tracy` from
-its parent/self folder names), then follow **Setup** below.
+Clone this repository into `<moodleroot>/admin/tool/tracy` (Moodle 5.1+:
+`<moodleroot>/public/admin/tool/tracy`). The directory name must be `tracy`,
+because Moodle derives the component name `tool_tracy` from its parent/self
+folder names. Then follow **Setup** below.
 
 ## Why an admin tool, and why the config.php line
 
@@ -49,6 +58,7 @@ Add these lines to your site's `config.php`, above
 `require_once(__DIR__ . '/lib/setup.php');`:
 
 ```php
+// Moodle 5.1+: __DIR__ . '/public/admin/tool/tracy/classes/bootstrap.php'
 require_once(__DIR__ . '/admin/tool/tracy/classes/bootstrap.php');
 \tool_tracy\bootstrap::enable(\Tracy\Debugger::Development);
 ```
@@ -198,12 +208,14 @@ core patch**: `dev/moodle_database.patch`, applied to your own local
 Moodle core checkout —
 
 ```bash
-patch -p1 < admin/tool/tracy/dev/moodle_database.patch
 # from your Moodle root
+patch -p1 < admin/tool/tracy/dev/moodle_database.patch
+# Moodle 5.1+ (public/ layout):
+patch -p1 < public/admin/tool/tracy/dev/moodle_database_public.patch
 ```
 
 If `patch` doesn't apply cleanly (see "Version compatibility" below), add
-this by hand inside `lib/dml/moodle_database.php`'s `query_log()`, right
+this by hand inside `lib/dml/moodle_database.php`'s (5.1+: `public/lib/dml/moodle_database.php`) `query_log()`, right
 after the `$time = $this->query_time();` line:
 
 ```php

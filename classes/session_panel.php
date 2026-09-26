@@ -31,28 +31,25 @@
 
 namespace tool_tracy;
 
-final class session_panel implements \Tracy\IBarPanel
-{
-    public function getTab(): string
-    {
-        return '<span title="Session">'
+final class session_panel implements \Tracy\IBarPanel {
+    public function getTab(): string {
+        return '<span title="' . htmlspecialchars(get_string('session_title', 'tool_tracy'), ENT_QUOTES) . '">'
             . '<svg viewBox="0 0 24 24" width="16" height="16">'
             . '<circle cx="12" cy="12" r="9" fill="none" stroke="#6ba9e6" stroke-width="1.6"/>'
             . '<path d="M12 7v5l4 2" fill="none" stroke="#6ba9e6" stroke-width="1.6" stroke-linecap="round"/>'
             . '</svg>'
-            . '<span class="tracy-label">session</span></span>';
+            . '<span class="tracy-label">' . htmlspecialchars(get_string('session_label', 'tool_tracy'), ENT_QUOTES) . '</span></span>';
     }
 
-    public function getPanel(): string
-    {
+    public function getPanel(): string {
         global $SESSION;
 
         $meta = [
-            'Session started' => session_id() !== '' ? 'yes' : 'no',
-            'PHP session handler' => ini_get('session.save_handler') ?: null,
+            get_string('session_started', 'tool_tracy') => get_string(session_id() !== '' ? 'yes' : 'no'),
+            get_string('session_handler', 'tool_tracy') => ini_get('session.save_handler') ?: null,
         ];
 
-        $html = '<h1>Session</h1><div class="tracy-inner">'
+        $html = '<h1>' . htmlspecialchars(get_string('session_title', 'tool_tracy'), ENT_QUOTES) . '</h1><div class="tracy-inner">'
             .'<table>';
         foreach ($meta as $label => $value) {
             if ($value === null) {

@@ -36,8 +36,7 @@
  */
 
 if (!function_exists('tool_tracy_log_query')) {
-    function tool_tracy_log_query(?string $sql, float $time, mixed $error = false): void
-    {
+    function tool_tracy_log_query(?string $sql, float $time, mixed $error = false): void {
         \tool_tracy\query_log::add($sql, $time, $error);
     }
 }

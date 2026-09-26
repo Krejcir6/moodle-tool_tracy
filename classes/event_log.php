@@ -29,16 +29,14 @@
 
 namespace tool_tracy;
 
-final class event_log
-{
+final class event_log {
     /** Caps memory use on long-running/heavy scripts (CLI cron, bulk imports). */
     private const MAX_ENTRIES = 500;
 
     /** @var array<int, array{class: string, data: array}> */
     private static array $entries = [];
 
-    public static function add(\core\event\base $event): void
-    {
+    public static function add(\core\event\base $event): void {
         if (count(self::$entries) >= self::MAX_ENTRIES) {
             return;
         }
@@ -50,8 +48,7 @@ final class event_log
     }
 
     /** @return array<int, array{class: string, data: array}> */
-    public static function entries(): array
-    {
+    public static function entries(): array {
         return self::$entries;
     }
 }

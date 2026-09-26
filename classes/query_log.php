@@ -27,16 +27,14 @@
 
 namespace tool_tracy;
 
-final class query_log
-{
+final class query_log {
     /** Caps memory use on long-running/heavy scripts (CLI cron, bulk imports). */
     private const MAX_ENTRIES = 500;
 
     /** @var array<int, array{sql: ?string, time: float, error: mixed}> */
     private static array $entries = [];
 
-    public static function add(?string $sql, float $time, mixed $error = false): void
-    {
+    public static function add(?string $sql, float $time, mixed $error = false): void {
         if (count(self::$entries) >= self::MAX_ENTRIES) {
             return;
         }
@@ -49,18 +47,15 @@ final class query_log
     }
 
     /** @return array<int, array{sql: ?string, time: float, error: mixed}> */
-    public static function entries(): array
-    {
+    public static function entries(): array {
         return self::$entries;
     }
 
-    public static function clear(): void
-    {
+    public static function clear(): void {
         self::$entries = [];
     }
 
-    public static function totalTime(): float
-    {
+    public static function totalTime(): float {
         return array_sum(array_column(self::$entries, 'time'));
     }
 }

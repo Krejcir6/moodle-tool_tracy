@@ -30,17 +30,15 @@
 
 namespace tool_tracy;
 
-final class user_panel implements \Tracy\IBarPanel
-{
-    public function getTab(): string
-    {
+final class user_panel implements \Tracy\IBarPanel {
+    public function getTab(): string {
         global $USER;
 
         $label = (!empty($USER->id) && (int) $USER->id > 0)
             ? ($USER->username ?? ('id ' . $USER->id))
-            : 'not logged in';
+            : get_string('user_notloggedin', 'tool_tracy');
 
-        return '<span title="Current user">'
+        return '<span title="' . htmlspecialchars(get_string('user_title', 'tool_tracy'), ENT_QUOTES) . '">'
             . '<svg viewBox="0 0 24 24" width="16" height="16">'
             . '<circle cx="12" cy="8" r="4" fill="none" stroke="#6ba9e6" stroke-width="1.6"/>'
             . '<path d="M4 21c0-4.4 3.6-8 8-8s8 3.6 8 8" fill="none" stroke="#6ba9e6" stroke-width="1.6"/>'
@@ -49,17 +47,16 @@ final class user_panel implements \Tracy\IBarPanel
             . '</span>';
     }
 
-    public function getPanel(): string
-    {
+    public function getPanel(): string {
         global $USER;
 
         $flags = [
-            'Logged in' => isloggedin() ? 'yes' : 'no',
-            'Guest' => isguestuser() ? 'yes' : 'no',
-            'Site admin' => is_siteadmin() ? 'yes' : 'no',
+            get_string('user_loggedin', 'tool_tracy') => get_string(isloggedin() ? 'yes' : 'no'),
+            get_string('user_guest', 'tool_tracy') => get_string(isguestuser() ? 'yes' : 'no'),
+            get_string('user_siteadmin', 'tool_tracy') => get_string(is_siteadmin() ? 'yes' : 'no'),
         ];
 
-        $html = '<h1>Current user</h1><div class="tracy-inner"><table>';
+        $html = '<h1>' . htmlspecialchars(get_string('user_title', 'tool_tracy'), ENT_QUOTES) . '</h1><div class="tracy-inner"><table>';
         foreach ($flags as $label => $value) {
             $html .= '<tr><th>' . htmlspecialchars($label, ENT_QUOTES) . '</th>'
                 . '<td>' . htmlspecialchars($value, ENT_QUOTES) . '</td></tr>';

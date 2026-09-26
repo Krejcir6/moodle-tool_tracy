@@ -47,8 +47,7 @@ unset($library);
 require_once __DIR__ . '/scrubber.php';
 require_once __DIR__ . '/query_log.php';
 
-final class bootstrap
-{
+final class bootstrap {
     /**
      * @param string|array|bool|null $mode 'development', 'production', or
      *                                IP whitelist. A raw Tracy\Debugger bool works too.
@@ -59,8 +58,7 @@ final class bootstrap
         string|array|bool|null $mode = null,
         ?string $logDirectory = null,
         bool $keepHandlers = true
-    ): void
-    {
+    ): void {
         if (!class_exists(\Tracy\Debugger::class)) {
             return;
         }
@@ -107,8 +105,7 @@ final class bootstrap
      *
      * @return array{exception: callable|null, error: callable|null}
      */
-    public static function captureHandlers(): array
-    {
+    public static function captureHandlers(): array {
         $exceptionHandler = set_exception_handler(static fn () => null);
         set_exception_handler($exceptionHandler);
 
@@ -122,8 +119,7 @@ final class bootstrap
     }
 
     /** @param array{exception: callable|null, error: callable|null} $handlers */
-    public static function restoreHandlers(array $handlers): void
-    {
+    public static function restoreHandlers(array $handlers): void {
         set_exception_handler($handlers['exception']);
         set_error_handler($handlers['error']);
     }
@@ -134,8 +130,7 @@ final class bootstrap
      * only ever grows, so a later call with a fuller $CFG can't lose
      * coverage. No-op if Tracy was never enabled.
      */
-    public static function refreshCfgScrubbing(): void
-    {
+    public static function refreshCfgScrubbing(): void {
         if (!class_exists(\Tracy\Debugger::class, false)) {
             return;
         }
@@ -159,8 +154,7 @@ final class bootstrap
      *
      * @return string[] Any of 'exception', 'error' — which Moodle reclaimed.
      */
-    public static function hijackedHandlers(): array
-    {
+    public static function hijackedHandlers(): array {
         $hijacked = [];
 
         $exceptionHandler = set_exception_handler(static fn () => null);
@@ -184,8 +178,7 @@ final class bootstrap
      * enabled — so this reimplements its two registration lines directly
      * (exceptionHandler()/errorHandler() are public static, made for this).
      */
-    public static function reclaimHandlers(): void
-    {
+    public static function reclaimHandlers(): void {
         if (!class_exists(\Tracy\Debugger::class, false)) {
             return;
         }
@@ -204,8 +197,7 @@ final class bootstrap
      * from reclaimHandlers()'s closure so it's testable without triggering
      * a real exit(255). Safe/cheap to always call — no-ops if nothing's open.
      */
-    public static function abortOpenTransactions(): void
-    {
+    public static function abortOpenTransactions(): void {
         if (function_exists('abort_all_db_transactions')) {
             abort_all_db_transactions();
         }
@@ -217,8 +209,7 @@ final class bootstrap
      * ...) use this instead of hand-picking "safe" fields, so properties
      * added later are covered automatically too.
      */
-    public static function scrubbedDumpOptions(): array
-    {
+    public static function scrubbedDumpOptions(): array {
         if (!class_exists(\Tracy\Debugger::class, false)) {
             return [];
         }

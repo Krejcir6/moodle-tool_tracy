@@ -35,8 +35,7 @@
 
 namespace tool_tracy;
 
-final class scrubber
-{
+final class scrubber {
     /** Default. Errs on the side of hiding anything that looks sensitive. */
     public const LEVEL_STRICT = 'strict';
 
@@ -50,8 +49,7 @@ final class scrubber
      * @return \Closure callable(string $key, mixed $value, ?string $class): bool
      *                   for Tracy\BlueScreen::$scrubber.
      */
-    public static function forLevel(string $level = self::LEVEL_STRICT, array $extraExactKeys = []): \Closure
-    {
+    public static function forLevel(string $level = self::LEVEL_STRICT, array $extraExactKeys = []): \Closure {
         $pattern = self::pattern($level);
         $exact = array_flip(array_map('strtolower', $extraExactKeys));
 
@@ -64,8 +62,7 @@ final class scrubber
      * @param string[] $extraExactKeys See forLevel().
      * @return string[] Literal (exact-match) key names for Debugger::$keysToHide.
      */
-    public static function keysToHide(string $level = self::LEVEL_STRICT, array $extraExactKeys = []): array
-    {
+    public static function keysToHide(string $level = self::LEVEL_STRICT, array $extraExactKeys = []): array {
         $common = [
             'password', 'passwd', 'pass', 'pwd', 'secret', 'token', 'apikey', 'api_key',
             'clientsecret', 'client_secret', 'authorization', 'cookie', 'creditcard', 'credit card',
@@ -89,8 +86,7 @@ final class scrubber
      * @param array<mixed> $values
      * @return array<mixed>
      */
-    public static function scrubArray(array $values, string $level = self::LEVEL_STRICT): array
-    {
+    public static function scrubArray(array $values, string $level = self::LEVEL_STRICT): array {
         $scrub = self::forLevel($level);
 
         foreach ($values as $key => $value) {
@@ -112,8 +108,7 @@ final class scrubber
      * @param array<mixed> $data
      * @return array<mixed>
      */
-    public static function scrubEventData(array $data): array
-    {
+    public static function scrubEventData(array $data): array {
         if (array_key_exists('other', $data)) {
             $data['other'] = self::scrubEventOther($data['other']);
         }
@@ -121,8 +116,7 @@ final class scrubber
         return self::scrubArray($data);
     }
 
-    private static function scrubEventOther(mixed $value): mixed
-    {
+    private static function scrubEventOther(mixed $value): mixed {
         if (is_array($value)) {
             $scrub = self::forLevel();
             foreach ($value as $key => $item) {
@@ -146,8 +140,7 @@ final class scrubber
         return $value;
     }
 
-    private static function pattern(string $level): string
-    {
+    private static function pattern(string $level): string {
         if ($level === self::LEVEL_MODERATE) {
             return '~password|passwd|pass|pwd|secret|token|credential~i';
         }

@@ -35,8 +35,7 @@ if (!function_exists('bdump')) {
     /**
      * @tracySkipLocation
      */
-    function bdump(mixed $var, ?string $title = null, array $options = []): mixed
-    {
+    function bdump(mixed $var, ?string $title = null, array $options = []): mixed {
         \Tracy\Debugger::barDump($var, $title, $options + \tool_tracy\bootstrap::scrubbedDumpOptions());
 
         return $var;
@@ -52,8 +51,7 @@ if (!function_exists('bdump_unsafe')) {
      *
      * @tracySkipLocation
      */
-    function bdump_unsafe(mixed $var, ?string $title = null, array $options = []): mixed
-    {
+    function bdump_unsafe(mixed $var, ?string $title = null, array $options = []): mixed {
         \Tracy\Debugger::barDump($var, '⚠ UNSAFE' . ($title !== null ? ": {$title}" : ''), $options);
 
         return $var;

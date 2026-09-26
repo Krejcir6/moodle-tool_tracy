@@ -32,8 +32,7 @@
 
 namespace tool_tracy;
 
-final class database_panel implements \Tracy\IBarPanel
-{
+final class database_panel implements \Tracy\IBarPanel {
     /** Row background switches to "slow" (red) at/above this, in ms. */
     private const SLOW_MS = 20.0;
 
@@ -43,15 +42,14 @@ final class database_panel implements \Tracy\IBarPanel
     /** Same exact SQL text executed at least this many times => flagged as frequent. */
     private const FREQUENT_THRESHOLD = 5;
 
-    public function getTab(): string
-    {
+    public function getTab(): string {
         global $DB;
 
         $reads = method_exists($DB, 'perf_get_reads') ? $DB->perf_get_reads() : null;
         $writes = method_exists($DB, 'perf_get_writes') ? $DB->perf_get_writes() : null;
         $time = method_exists($DB, 'perf_get_queries_time') ? $DB->perf_get_queries_time() : null;
 
-        $label = ((int) $reads + (int) $writes) . ' queries';
+        $label = get_string('db_tab', 'tool_tracy', (int) $reads + (int) $writes);
         if ($time !== null) {
             $label .= sprintf(' (%.1f ms)', $time * 1000);
         }
@@ -59,7 +57,7 @@ final class database_panel implements \Tracy\IBarPanel
         $warn = $this->hasWarnings();
         $color = $warn ? '#c00' : '#6ba9e6';
 
-        return '<span title="Database">'
+        return '<span title="' . htmlspecialchars(get_string('db_title', 'tool_tracy'), ENT_QUOTES) . '">'
             . '<svg viewBox="0 0 24 24" width="16" height="16">'
             . '<ellipse cx="12" cy="5" rx="8" ry="3" fill="none" stroke="' . $color . '" stroke-width="1.6"/>'
             . '<path d="M4 5v6c0 1.7 3.6 3 8 3s8-1.3 8-3V5" fill="none" stroke="' . $color . '" stroke-width="1.6"/>'
@@ -69,20 +67,19 @@ final class database_panel implements \Tracy\IBarPanel
             . '</span>';
     }
 
-    public function getPanel(): string
-    {
+    public function getPanel(): string {
         global $DB;
 
         $rows = [
-            'Reads' => method_exists($DB, 'perf_get_reads') ? $DB->perf_get_reads() : null,
-            'Reads (replica)' => method_exists($DB, 'perf_get_reads_slave') ? $DB->perf_get_reads_slave() : null,
-            'Writes' => method_exists($DB, 'perf_get_writes') ? $DB->perf_get_writes() : null,
-            'Total time' => method_exists($DB, 'perf_get_queries_time')
+            get_string('db_reads', 'tool_tracy') => method_exists($DB, 'perf_get_reads') ? $DB->perf_get_reads() : null,
+            get_string('db_reads_replica', 'tool_tracy') => method_exists($DB, 'perf_get_reads_slave') ? $DB->perf_get_reads_slave() : null,
+            get_string('db_writes', 'tool_tracy') => method_exists($DB, 'perf_get_writes') ? $DB->perf_get_writes() : null,
+            get_string('db_totaltime', 'tool_tracy') => method_exists($DB, 'perf_get_queries_time')
                 ? sprintf('%.2f ms', $DB->perf_get_queries_time() * 1000)
                 : null,
         ];
 
-        $html = '<h1>Database</h1><div class="tracy-inner"><table>';
+        $html = '<h1>' . htmlspecialchars(get_string('db_title', 'tool_tracy'), ENT_QUOTES) . '</h1><div class="tracy-inner"><table>';
         foreach ($rows as $label => $value) {
             if ($value === null) {
                 continue;
@@ -95,11 +92,7 @@ final class database_panel implements \Tracy\IBarPanel
         $entries = query_log::entries();
 
         if ($entries === []) {
-            $html .= '<p>Per-query log not available. Moodle core does not expose a public '
-                . 'per-query hook — this needs an optional, dev-only one-line patch to '
-                . '<code>lib/dml/moodle_database.php</code>. See '
-                . '<code>dev/moodle_database.patch</code> and README.md\'s '
-                . '"Database panel" section.</p>';
+            $html .= '<p>' . htmlspecialchars(get_string('db_nolog', 'tool_tracy'), ENT_QUOTES) . '</p>';
         } else {
             $counts = array_count_values(array_column($entries, 'sql'));
 
@@ -108,12 +101,15 @@ final class database_panel implements \Tracy\IBarPanel
                 . '<span style="' . $this->style(self::SLOW_MS, 0) . '">&nbsp;&nbsp;</span> &ge; '
                 . self::SLOW_MS . ' ms &nbsp; '
                 . '<span style="' . $this->style(0, self::FREQUENT_THRESHOLD) . '">&nbsp;&nbsp;</span> '
-                . 'run &ge; ' . self::FREQUENT_THRESHOLD . '&times; (possible N+1)</p>';
+                . htmlspecialchars(get_string('db_legend_frequent', 'tool_tracy', self::FREQUENT_THRESHOLD), ENT_QUOTES)
+                . '</p>';
 
             $duplicates = $this->duplicateSummary($entries);
             if ($duplicates !== []) {
-                $html .= '<h2>Duplicate queries (possible N+1)</h2>'
-                    . '<table><tr><th>&times;</th><th>Total time</th><th>SQL</th></tr>';
+                $html .= '<h2>' . htmlspecialchars(get_string('db_duplicates', 'tool_tracy'), ENT_QUOTES) . '</h2>'
+                    . '<table><tr><th>&times;</th><th>'
+                    . htmlspecialchars(get_string('db_totaltime', 'tool_tracy'), ENT_QUOTES)
+                    . '</th><th>SQL</th></tr>';
                 foreach ($duplicates as $sql => $group) {
                     $html .= '<tr style="' . $this->style(0, $group['count']) . '">'
                         . '<td>' . htmlspecialchars((string) $group['count'], ENT_QUOTES) . '</td>'
@@ -124,8 +120,9 @@ final class database_panel implements \Tracy\IBarPanel
                 $html .= '</table>';
             }
 
-            $html .= '<h2>All queries</h2>';
-            $html .= '<table><tr><th>Time</th><th>&times;</th><th>SQL</th></tr>';
+            $html .= '<h2>' . htmlspecialchars(get_string('db_allqueries', 'tool_tracy'), ENT_QUOTES) . '</h2>';
+            $html .= '<table><tr><th>' . htmlspecialchars(get_string('db_time', 'tool_tracy'), ENT_QUOTES)
+                . '</th><th>&times;</th><th>SQL</th></tr>';
             foreach ($entries as $entry) {
                 $timeMs = $entry['time'] * 1000;
                 $count = $counts[$entry['sql']] ?? 1;
@@ -152,8 +149,7 @@ final class database_panel implements \Tracy\IBarPanel
      * @param array<int, array{sql: ?string, time: float, error: mixed}> $entries
      * @return array<string, array{count: int, time: float}>
      */
-    private function duplicateSummary(array $entries): array
-    {
+    private function duplicateSummary(array $entries): array {
         $groups = [];
         foreach ($entries as $entry) {
             $sql = $entry['sql'] ?? '';
@@ -167,8 +163,7 @@ final class database_panel implements \Tracy\IBarPanel
         return $duplicates;
     }
 
-    private function hasWarnings(): bool
-    {
+    private function hasWarnings(): bool {
         $entries = query_log::entries();
         if ($entries === []) {
             return false;
@@ -189,8 +184,7 @@ final class database_panel implements \Tracy\IBarPanel
         return false;
     }
 
-    private function style(float $timeMs, int $count): string
-    {
+    private function style(float $timeMs, int $count): string {
         if ($timeMs >= self::SLOW_MS) {
             return 'background:#ffcccc';
         }
