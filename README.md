@@ -172,8 +172,8 @@ request. The **Error handler ownership** setting decides what happens next:
 - **Tracy handlers** make `tool_tracy_after_config()` reclaim the handlers,
   providing Tracy bluescreens for uncaught post-bootstrap exceptions too.
 
-When Tracy owns exceptions, `reclaimHandlers()` calls
-`bootstrap::abortOpenTransactions()`, which mirrors the one thing worth
+When Tracy owns exceptions, `reclaim_handlers()` calls
+`bootstrap::abort_open_transactions()`, which mirrors the one thing worth
 keeping from Moodle's own handler: `default_exception_handler()`'s first
 line is `abort_all_db_transactions()`, because an exception handler must
 never leave a Moodle DB transaction open. It's cheap and safe to always
@@ -244,7 +244,7 @@ activation paths enabled Tracy.** At the point the low-level path calls
 `enable()` from `config.php`, `$CFG` only has the ~30 properties
 `config.php` itself sets — the few hundred more that `lib/setup.php`'s
 `initialise_cfg()` loads from the `mdl_config` table (`siteidentifier` and
-any DB-stored secrets among them) don't exist yet. `bootstrap::refreshCfgScrubbing()`
+any DB-stored secrets among them) don't exist yet. `bootstrap::refresh_cfg_scrubbing()`
 re-derives the $CFG key list and is called again from `tool_tracy_after_config()`
 — which Moodle invokes on every request regardless of activation path —
 once bootstrap has actually finished and $CFG is complete. The only
@@ -342,7 +342,7 @@ Two things, not just "an event fired":
   parent-class chain too (a `'*'` registration becomes
   `\core\event\base` internally, so an event several levels down still
   matches it). That walk is done by `manager::get_observing_classes()`,
-  which is `protected` — `events_panel::observersFor()` reimplements the
+  which is `protected` — `events_panel::observers_for()` reimplements the
   same handful of `get_class()`/`get_parent_class()` lines rather than
   reaching into a private internal. Confirmed live against a real
   triggered event that this lists genuine third-party observers
@@ -397,6 +397,26 @@ both — didn't make PHPStan aware of `Tracy\Debugger`/`Tracy\Dumper`/
 `Tracy\IBarPanel` the way `scanDirectories` did for Moodle's own `lib/`).
 `--memory-limit=1G`: scanning all of `lib/` needs more than PHP's 128M
 default.
+
+## Coding style
+
+Unlike PHPStan, the Moodle coding-style check needs no Moodle checkout —
+`moodlehq/moodle-cs` is a standalone PHP_CodeSniffer ruleset:
+
+```bash
+composer install   # once, installs moodlehq/moodle-cs as a dev dependency
+vendor/bin/phpcs --standard=moodle --ignore='vendor/*,thirdparty/*' .
+vendor/bin/phpcbf --standard=moodle --ignore='vendor/*,thirdparty/*' .  # auto-fixes what it safely can
+```
+
+This is the same check `moodle-plugin-ci phpcs`/`phpdoc` run in CI
+(`.github/workflows/moodle-plugin-ci.yml`), so a clean local run here means
+CI's style check will pass too. A few deliberate violations are suppressed
+inline with `phpcs:ignore` and explained in a comment: methods named
+`getTab()`/`getPanel()` implement Tracy's own `\Tracy\IBarPanel` interface,
+and some variables access Tracy's own camelCase properties
+(`$strictMode`/`$showBar`/`$keysToHide`/`$productionMode`) — neither is ours
+to rename.
 
 ## Known limitations (skeleton, not production-hardened)
 

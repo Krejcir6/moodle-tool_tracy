@@ -27,37 +27,51 @@
  * @copyright  2026 Radek Krejci
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
+// phpcs:disable moodle.NamingConventions.ValidVariableName.VariableNameLowerCase
+// Tracy's own public static properties ($strictMode, $showBar, $keysToHide)
+// are camelCase and out of our control — this file accesses them directly.
 
 namespace tool_tracy;
 
+// This file is required directly from config.php, before Moodle's own
+// bootstrap — so before MOODLE_INTERNAL or config.php-inclusion checks
+// would make any sense. See the class docblock below.
+
 // Must run before the Tracy require below: bdump.php's replacement bdump()
 // is guarded the same way Tracy's own is, so ours has to load first.
-require_once __DIR__ . '/../bdump.php';
+// phpcs:ignore moodle.Files.MoodleInternal.MoodleInternalGlobalState
+require_once(__DIR__ . '/../bdump.php');
 
 // Defines tool_tracy_log_query(), target of the optional dev/moodle_database.patch.
-require_once __DIR__ . '/../query_log.php';
+require_once(__DIR__ . '/../query_log.php');
 
 $library = __DIR__ . '/../thirdparty/tracy/src/tracy.php';
 if (is_file($library)) {
-    require_once $library;
+    require_once($library);
 }
 unset($library);
 
 // Explicit requires: Moodle's autoloader isn't registered yet this early.
-require_once __DIR__ . '/scrubber.php';
-require_once __DIR__ . '/query_log.php';
+require_once(__DIR__ . '/scrubber.php');
+require_once(__DIR__ . '/query_log.php');
 
+/**
+ * Enables Tracy before Moodle's own bootstrap runs, and manages the
+ * handover of PHP's exception/error handlers between Tracy and Moodle.
+ */
 final class bootstrap {
     /**
+     * Enables Tracy with the given mode and bootstrap options.
+     *
      * @param string|array|bool|null $mode 'development', 'production', or
      *                                IP whitelist. A raw Tracy\Debugger bool works too.
-     * @param string|null $logDirectory Absolute path Tracy logs to, or null to disable.
-     * @param bool $keepHandlers Whether Tracy should remain the active exception/error handler.
+     * @param string|null $logdirectory Absolute path Tracy logs to, or null to disable.
+     * @param bool $keephandlers Whether Tracy should remain the active exception/error handler.
      */
     public static function enable(
         string|array|bool|null $mode = null,
-        ?string $logDirectory = null,
-        bool $keepHandlers = true
+        ?string $logdirectory = null,
+        bool $keephandlers = true
     ): void {
         if (!class_exists(\Tracy\Debugger::class)) {
             return;
@@ -70,8 +84,8 @@ final class bootstrap {
                 default => \Tracy\Debugger::Detect,
             };
         }
-        $handlers = $keepHandlers ? null : self::captureHandlers();
-        $runtime = $keepHandlers ? null : [
+        $handlers = $keephandlers ? null : self::capture_handlers();
+        $runtime = $keephandlers ? null : [
             'error_reporting' => error_reporting(),
             'display_errors' => ini_get('display_errors'),
             'html_errors' => ini_get('html_errors'),
@@ -79,10 +93,10 @@ final class bootstrap {
             'zend.exception_ignore_args' => ini_get('zend.exception_ignore_args'),
         ];
 
-        \Tracy\Debugger::enable($mode, $logDirectory);
+        \Tracy\Debugger::enable($mode, $logdirectory);
 
         if ($handlers !== null) {
-            self::restoreHandlers($handlers);
+            self::restore_handlers($handlers);
             error_reporting($runtime['error_reporting']);
             foreach (['display_errors', 'html_errors', 'log_errors', 'zend.exception_ignore_args'] as $setting) {
                 if ($runtime[$setting] !== false) {
@@ -93,11 +107,11 @@ final class bootstrap {
         \Tracy\Debugger::$strictMode = true;
         \Tracy\Debugger::$showBar = PHP_SAPI !== 'cli';
 
-        // $CFG only has config.php's own ~30 properties this early, not the
-        // ~600 initialise_cfg() loads later — refreshCfgScrubbing() gets
-        // called again once that's done. This call only matters for a
+        // Config.php's $CFG only has its own ~30 properties this early, not
+        // the ~600 initialise_cfg() loads later — refresh_cfg_scrubbing()
+        // gets called again once that's done. This call only matters for a
         // crash in the narrow window before then.
-        self::refreshCfgScrubbing();
+        self::refresh_cfg_scrubbing();
     }
 
     /**
@@ -105,21 +119,25 @@ final class bootstrap {
      *
      * @return array{exception: callable|null, error: callable|null}
      */
-    public static function captureHandlers(): array {
-        $exceptionHandler = set_exception_handler(static fn () => null);
-        set_exception_handler($exceptionHandler);
+    public static function capture_handlers(): array {
+        $exceptionhandler = set_exception_handler(static fn () => null);
+        set_exception_handler($exceptionhandler);
 
-        $errorHandler = set_error_handler(static fn () => false);
-        set_error_handler($errorHandler);
+        $errorhandler = set_error_handler(static fn () => false);
+        set_error_handler($errorhandler);
 
         return [
-            'exception' => $exceptionHandler,
-            'error' => $errorHandler,
+            'exception' => $exceptionhandler,
+            'error' => $errorhandler,
         ];
     }
 
-    /** @param array{exception: callable|null, error: callable|null} $handlers */
-    public static function restoreHandlers(array $handlers): void {
+    /**
+     * Restores PHP handlers previously captured by capture_handlers().
+     *
+     * @param array{exception: callable|null, error: callable|null} $handlers
+     */
+    public static function restore_handlers(array $handlers): void {
         set_exception_handler($handlers['exception']);
         set_error_handler($handlers['error']);
     }
@@ -130,18 +148,18 @@ final class bootstrap {
      * only ever grows, so a later call with a fuller $CFG can't lose
      * coverage. No-op if Tracy was never enabled.
      */
-    public static function refreshCfgScrubbing(): void {
+    public static function refresh_cfg_scrubbing(): void {
         if (!class_exists(\Tracy\Debugger::class, false)) {
             return;
         }
 
         global $CFG;
-        $cfgKeys = isset($CFG) ? array_keys((array) $CFG) : [];
+        $cfgkeys = isset($CFG) ? array_keys((array) $CFG) : [];
 
-        \Tracy\Debugger::getBlueScreen()->scrubber = scrubber::forLevel(scrubber::LEVEL_STRICT, $cfgKeys);
+        \Tracy\Debugger::getBlueScreen()->scrubber = scrubber::for_level(scrubber::LEVEL_STRICT, $cfgkeys);
         \Tracy\Debugger::$keysToHide = array_values(array_unique(array_merge(
             \Tracy\Debugger::$keysToHide,
-            scrubber::keysToHide(scrubber::LEVEL_STRICT, $cfgKeys)
+            scrubber::keys_to_hide(scrubber::LEVEL_STRICT, $cfgkeys)
         )));
     }
 
@@ -154,18 +172,18 @@ final class bootstrap {
      *
      * @return string[] Any of 'exception', 'error' — which Moodle reclaimed.
      */
-    public static function hijackedHandlers(): array {
+    public static function hijacked_handlers(): array {
         $hijacked = [];
 
-        $exceptionHandler = set_exception_handler(static fn () => null);
-        set_exception_handler($exceptionHandler);
-        if ($exceptionHandler === 'default_exception_handler') {
+        $exceptionhandler = set_exception_handler(static fn () => null);
+        set_exception_handler($exceptionhandler);
+        if ($exceptionhandler === 'default_exception_handler') {
             $hijacked[] = 'exception';
         }
 
-        $errorHandler = set_error_handler(static fn () => false);
-        set_error_handler($errorHandler);
-        if ($errorHandler === 'default_error_handler') {
+        $errorhandler = set_error_handler(static fn () => false);
+        set_error_handler($errorhandler);
+        if ($errorhandler === 'default_error_handler') {
             $hijacked[] = 'error';
         }
 
@@ -178,13 +196,13 @@ final class bootstrap {
      * enabled — so this reimplements its two registration lines directly
      * (exceptionHandler()/errorHandler() are public static, made for this).
      */
-    public static function reclaimHandlers(): void {
+    public static function reclaim_handlers(): void {
         if (!class_exists(\Tracy\Debugger::class, false)) {
             return;
         }
 
         set_exception_handler(static function (\Throwable $e): void {
-            self::abortOpenTransactions();
+            self::abort_open_transactions();
             \Tracy\Debugger::exceptionHandler($e);
             exit(255);
         });
@@ -194,10 +212,10 @@ final class bootstrap {
     /**
      * Mirrors default_exception_handler()'s first line: an exception
      * handler must never leave a Moodle DB transaction open. Split out
-     * from reclaimHandlers()'s closure so it's testable without triggering
+     * from reclaim_handlers()'s closure so it's testable without triggering
      * a real exit(255). Safe/cheap to always call — no-ops if nothing's open.
      */
-    public static function abortOpenTransactions(): void {
+    public static function abort_open_transactions(): void {
         if (function_exists('abort_all_db_transactions')) {
             abort_all_db_transactions();
         }
@@ -209,7 +227,7 @@ final class bootstrap {
      * ...) use this instead of hand-picking "safe" fields, so properties
      * added later are covered automatically too.
      */
-    public static function scrubbedDumpOptions(): array {
+    public static function scrubbed_dump_options(): array {
         if (!class_exists(\Tracy\Debugger::class, false)) {
             return [];
         }

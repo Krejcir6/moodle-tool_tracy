@@ -33,6 +33,9 @@ class query_log_test extends \basic_testcase {
         query_log::clear();
     }
 
+    /**
+     * Finds a recorded entry by its exact SQL text.
+     */
     private function find(string $sql): ?array {
         foreach (query_log::entries() as $entry) {
             if ($entry['sql'] === $sql) {
@@ -43,6 +46,8 @@ class query_log_test extends \basic_testcase {
     }
 
     /**
+     * add() must record the SQL text and timing of an entry.
+     *
      * @runInSeparateProcess
      */
     public function test_add_records_sql_and_time(): void {
@@ -57,6 +62,8 @@ class query_log_test extends \basic_testcase {
     }
 
     /**
+     * add() must record an entry's error status.
+     *
      * @runInSeparateProcess
      */
     public function test_add_records_error_status(): void {
@@ -68,18 +75,22 @@ class query_log_test extends \basic_testcase {
     }
 
     /**
+     * total_time() must sum the time of all recorded entries.
+     *
      * @runInSeparateProcess
      */
     public function test_totaltime_sums_committed_entries(): void {
-        $before = query_log::totalTime();
+        $before = query_log::total_time();
 
         query_log::add('TRACY_TEST_MARKER ' . uniqid(), 0.01);
         query_log::add('TRACY_TEST_MARKER ' . uniqid(), 0.02);
 
-        $this->assertEqualsWithDelta(0.03, query_log::totalTime() - $before, 0.0001);
+        $this->assertEqualsWithDelta(0.03, query_log::total_time() - $before, 0.0001);
     }
 
     /**
+     * query_log must cap stored entries to bound memory use.
+     *
      * @runInSeparateProcess
      */
     public function test_entries_cap_is_enforced(): void {

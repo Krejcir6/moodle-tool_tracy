@@ -24,8 +24,13 @@ namespace tool_tracy;
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class activation_test extends \advanced_testcase {
+    /** @var array Snapshot of $_SERVER, restored in tearDown(). */
     private array $server;
+
+    /** @var mixed Snapshot of $CFG->getremoteaddrconf, restored in tearDown(). */
     private mixed $getremoteaddrconf;
+
+    /** @var bool Whether $CFG->getremoteaddrconf existed before the test ran. */
     private bool $hadgetremoteaddrconf;
 
     protected function setUp(): void {
@@ -49,7 +54,11 @@ class activation_test extends \advanced_testcase {
         parent::tearDown();
     }
 
-    /** @dataProvider ip_allowlist_provider */
+    /**
+     * tool_tracy_client_ip_is_allowed() must match single IPs and subnets.
+     *
+     * @dataProvider ip_allowlist_provider
+     */
     public function test_ip_allowlist(string $clientip, string $allowlist, bool $expected): void {
         $_SERVER['REMOTE_ADDR'] = $clientip;
         unset($_SERVER['HTTP_CLIENT_IP'], $_SERVER['HTTP_X_FORWARDED_FOR']);
@@ -57,6 +66,9 @@ class activation_test extends \advanced_testcase {
         $this->assertSame($expected, tool_tracy_client_ip_is_allowed($allowlist));
     }
 
+    /**
+     * Data provider for test_ip_allowlist().
+     */
     public static function ip_allowlist_provider(): array {
         return [
             'empty list allows any client' => ['203.0.113.10', '', true],

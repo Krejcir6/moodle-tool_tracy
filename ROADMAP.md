@@ -20,7 +20,7 @@ default, not an opt-in.
 - [x] Handler-hijack detection and **optional reclaiming**. The
       `handlerownership` setting defaults to `moodle`, preserving Moodle's
       AJAX responses, redirects, rendering, logging, and exit semantics.
-      Selecting `tracy` makes `bootstrap::reclaimHandlers()` take the
+      Selecting `tracy` makes `bootstrap::reclaim_handlers()` take the
       handlers back from Moodle's `default_exception_handler`/
       `default_error_handler` —
       reimplementing the two lines `Debugger::enable()` itself uses
@@ -34,7 +34,7 @@ default, not an opt-in.
         did**: `default_exception_handler()`'s first line is
         `abort_all_db_transactions()` — an exception handler must never
         leave a Moodle DB transaction open. Pulled out into
-        `bootstrap::abortOpenTransactions()` (safe/cheap to always call —
+        `bootstrap::abort_open_transactions()` (safe/cheap to always call —
         the underlying function no-ops if nothing is open) specifically so
         it's unit-testable without having to trigger a real, process-ending
         `exit(255)`. Confirmed live, twice: PHPUnit test opens a real
@@ -51,7 +51,7 @@ default, not an opt-in.
       guesses are sensitive) — `bootstrap::enable()` passes $CFG's real key
       list in. `LEVEL_MODERATE` exists in the
       class for later, but nothing exposes a way to switch to it yet.
-- [x] `bootstrap::refreshCfgScrubbing()`: the low-level path's `$CFG`
+- [x] `bootstrap::refresh_cfg_scrubbing()`: the low-level path's `$CFG`
       snapshot at `enable()` time is incomplete (~30 keys vs. ~620 once
       `lib/setup.php` finishes) — `tool_tracy_after_config()` now re-derives
       it once $CFG is actually complete, on every request, regardless of
@@ -69,7 +69,7 @@ default, not an opt-in.
       `tests/scrubber_test.php` + `tests/bdump_test.php` +
       `tests/handler_check_panel_test.php` + `tests/noop_by_default_test.php`
       (PHPUnit — mode-string mapping, CLI disables the bar,
-      `hijackedHandlers()`, scrubber pattern/exact-match behaviour,
+      `hijacked_handlers()`, scrubber pattern/exact-match behaviour,
       `bdump()`/`bdump_unsafe()`, panel rendering/escaping, admin setting
       defaults) and `tests/ajax_smoke.sh` (real-HTTP check that Tracy stays
       out of JSON AJAX responses — not possible as a PHPUnit test, see
@@ -99,7 +99,7 @@ Moodle development, not just crash reporting.
       from `$_GET`; POST/raw bodies, uploads, and cookies are never inspected.
       Sensitive-looking names (`sesskey`, `token`, ...) are masked recursively.
 - [x] **User panel** (`user_panel`) — deliberately a full scrubbed dump of
-      `$USER` (`bootstrap::scrubbedDumpOptions()`) rather than a hand-picked
+      `$USER` (`bootstrap::scrubbed_dump_options()`) rather than a hand-picked
       field list, same reasoning as `$CFG`: any auth/SSO/profile-field
       plugin can add properties, and a hand-picked list would need updating
       every time one does. Plus `isloggedin()`/`isguestuser()`/
@@ -157,7 +157,7 @@ Moodle development, not just crash reporting.
       - Which events actually triggered, grouped by event class (not
         instance) with a count, same pattern as the database panel's
         duplicate-query summary. `other`/event data goes through
-        `bootstrap::scrubbedDumpOptions()`.
+        `bootstrap::scrubbed_dump_options()`.
       - For each triggered event class, which observers Moodle would
         invoke for it — `\core\event\manager::get_all_observers()` is
         public API; matching an event to the observers that apply to it
@@ -204,7 +204,7 @@ Moodle development, not just crash reporting.
       `\tool_tracy\hook\register_panels`) dispatched from
       `tool_tracy_after_config()` after the built-in panels are added; plugins
       subscribe in their own `db/hooks.php` and call `$hook->add_panel()`.
-      Open questions: panels must go through `bootstrap::scrubbedDumpOptions()`
+      Open questions: panels must go through `bootstrap::scrubbed_dump_options()`
       (document it, maybe offer a helper), and a panel that throws must not
       break the bar (Tracy already isolates a failing panel).
 

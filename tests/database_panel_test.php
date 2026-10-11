@@ -32,6 +32,9 @@ class database_panel_test extends \basic_testcase {
     }
 
     /**
+     * Queries repeated past the threshold must be grouped with their
+     * combined runtime.
+     *
      * @runInSeparateProcess
      */
     public function test_duplicate_queries_are_summarised_with_combined_time(): void {
@@ -67,6 +70,8 @@ class database_panel_test extends \basic_testcase {
     }
 
     /**
+     * The per-query table must show SQL text and timing only, no params.
+     *
      * @runInSeparateProcess
      */
     public function test_no_params_column_in_the_output(): void {

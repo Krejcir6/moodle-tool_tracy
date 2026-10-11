@@ -30,6 +30,8 @@ class user_panel_test extends \basic_testcase {
     }
 
     /**
+     * $USER properties that look sensitive by name must be masked.
+     *
      * @runInSeparateProcess
      */
     public function test_getpanel_masks_a_sensitive_looking_user_property(): void {
@@ -45,6 +47,8 @@ class user_panel_test extends \basic_testcase {
     }
 
     /**
+     * The panel must show login/guest/admin status flags.
+     *
      * @runInSeparateProcess
      */
     public function test_getpanel_shows_login_flags(): void {

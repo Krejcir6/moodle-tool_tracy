@@ -27,7 +27,13 @@ namespace tool_tracy\privacy;
 use core_privacy\local\metadata\collection;
 use core_privacy\local\metadata\provider as metadata_provider;
 
+/**
+ * Privacy provider.
+ */
 class provider implements metadata_provider {
+    /**
+     * Declares the external location link for Tracy's own log directory.
+     */
     public static function get_metadata(collection $collection): collection {
         $collection->add_external_location_link(
             'tracy_log_directory',

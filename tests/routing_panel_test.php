@@ -24,9 +24,16 @@ namespace tool_tracy;
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class routing_panel_test extends \basic_testcase {
+    /** @var ?array Snapshot of $_SERVER, restored in tearDown(). */
     private ?array $server;
+
+    /** @var array Snapshot of $_GET, restored in tearDown(). */
     private array $get;
+
+    /** @var array Snapshot of $_POST, restored in tearDown(). */
     private array $post;
+
+    /** @var array Snapshot of $_COOKIE, restored in tearDown(). */
     private array $cookie;
 
     protected function setUp(): void {

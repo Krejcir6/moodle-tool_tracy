@@ -22,12 +22,17 @@
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-defined('MOODLE_INTERNAL') || die();
-
+/**
+ * Declares the activation-mode Check API report.
+ */
 function tool_tracy_security_checks(): array {
     return [new \tool_tracy\check\activation()];
 }
 
+/**
+ * Records the current deployment (wwwroot) whenever activation mode changes,
+ * so a later request on a different wwwroot can detect the mismatch.
+ */
 function tool_tracy_activationmode_updated(string $fullname): void {
     global $CFG, $DB;
 
@@ -78,21 +83,22 @@ function tool_tracy_after_config(): void {
         \tool_tracy\bootstrap::enable($tracymode, null, $tracyhandlers);
 
         if (!class_exists(\Tracy\Debugger::class, false)) {
-            return; // thirdparty/tracy not vendored.
+            return; // Thirdparty/tracy not vendored.
         }
     }
 
-    // $CFG is fully populated by now, unlike when the low-level path called
-    // enable() from config.php — see bootstrap::refreshCfgScrubbing().
-    \tool_tracy\bootstrap::refreshCfgScrubbing();
+    // Config.php's $CFG is fully populated by now, unlike when the
+    // low-level path called enable() from config.php — see
+    // bootstrap::refresh_cfg_scrubbing().
+    \tool_tracy\bootstrap::refresh_cfg_scrubbing();
 
     // Low-level activation owns handlers during early bootstrap. Moodle then
     // installs its own; reclaim them only when explicitly configured to do so.
-    if ($tracyhandlers && \tool_tracy\bootstrap::hijackedHandlers() !== []) {
-        \tool_tracy\bootstrap::reclaimHandlers();
+    if ($tracyhandlers && \tool_tracy\bootstrap::hijacked_handlers() !== []) {
+        \tool_tracy\bootstrap::reclaim_handlers();
     }
 
-    if (\Tracy\Debugger::$showBar) {
+    if (\Tracy\Debugger::$showBar) { // phpcs:ignore moodle.NamingConventions.ValidVariableName.VariableNameLowerCase
         $bar = \Tracy\Debugger::getBar();
         $bar->addPanel(new \tool_tracy\routing_panel());
         $bar->addPanel(new \tool_tracy\user_panel());
@@ -102,10 +108,17 @@ function tool_tracy_after_config(): void {
     }
 }
 
+/**
+ * Whether the current client IP is covered by the activation IP allowlist.
+ */
 function tool_tracy_client_ip_is_allowed(string $activationips): bool {
     return $activationips === '' || remoteip_in_list($activationips);
 }
 
+/**
+ * Normalizes a wwwroot to scheme://host[:port][/path], lower-cased, so
+ * deployment comparisons ignore a trailing slash or host case.
+ */
 function tool_tracy_normalize_root(string $root): string {
     $parts = parse_url(rtrim($root, '/'));
     if ($parts === false || empty($parts['host'])) {
@@ -117,6 +130,9 @@ function tool_tracy_normalize_root(string $root): string {
         . ($parts['path'] ?? ''));
 }
 
+/**
+ * Whether the given wwwroot matches the deployment Tracy was activated on.
+ */
 function tool_tracy_deployment_matches(string $wwwroot): bool {
     global $DB;
 
@@ -125,6 +141,11 @@ function tool_tracy_deployment_matches(string $wwwroot): bool {
         && $deployment->wwwroot === tool_tracy_normalize_root($wwwroot);
 }
 
+/**
+ * Turns activation off if the current wwwroot no longer matches the
+ * recorded deployment, so a copied database doesn't silently carry an
+ * active debugger to a different site URL.
+ */
 function tool_tracy_disable_if_deployment_mismatch(string $wwwroot): bool {
     if (tool_tracy_deployment_matches($wwwroot)) {
         return false;

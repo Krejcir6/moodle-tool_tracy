@@ -28,9 +28,12 @@ namespace tool_tracy;
  */
 class bdump_test extends \basic_testcase {
     /**
+     * Reads back the Tracy bar's "Tracy:dumps" panel data, as populated by
+     * bdump()/bdump_unsafe().
+     *
      * @return array<int, array{title: ?string, dump: string}>
      */
-    private function dumpsPanelData(): array {
+    private function dumps_panel_data(): array {
         $panel = \Tracy\Debugger::getBar()->getPanel('Tracy:dumps');
         $this->assertInstanceOf(\Tracy\DefaultBarPanel::class, $panel, 'bdump() must add a dumps panel to the bar');
 
@@ -38,6 +41,8 @@ class bdump_test extends \basic_testcase {
     }
 
     /**
+     * bdump() must mask a key that looks sensitive by name.
+     *
      * @runInSeparateProcess
      */
     public function test_bdump_masks_a_known_cfg_key(): void {
@@ -49,28 +54,39 @@ class bdump_test extends \basic_testcase {
         $array = ['dbpass' => $secret, 'wwwroot' => 'http://example.test'];
         bdump($array);
 
-        $data = $this->dumpsPanelData();
+        $data = $this->dumps_panel_data();
         $html = end($data)['dump'];
         $this->assertStringNotContainsString($secret, $html);
         $this->assertStringContainsString('dbpass', $html, 'the key name itself is not secret and should still show');
     }
 
     /**
+     * bdump() must mask the real $CFG->dbpass, not just a name-based guess.
+     *
      * @runInSeparateProcess
      */
     public function test_bdump_masks_real_cfg_dbpass(): void {
         global $CFG;
+        if ((string) $CFG->dbpass === '') {
+            // Nothing to mask on a passwordless DB connection (e.g. CI's
+            // trust-authenticated Postgres); an empty needle would trivially
+            // "match" any haystack and defeat the point of this test.
+            $this->markTestSkipped('This test environment has no real $CFG->dbpass to check against.');
+        }
+
         bootstrap::enable('development');
-        bootstrap::refreshCfgScrubbing();
+        bootstrap::refresh_cfg_scrubbing();
 
         bdump($CFG);
 
-        $data = $this->dumpsPanelData();
+        $data = $this->dumps_panel_data();
         $html = end($data)['dump'];
         $this->assertStringNotContainsString((string) $CFG->dbpass, $html);
     }
 
     /**
+     * bdump() must still return its argument unchanged, like Tracy's own.
+     *
      * @runInSeparateProcess
      */
     public function test_bdump_still_returns_the_original_value(): void {
@@ -80,6 +96,8 @@ class bdump_test extends \basic_testcase {
     }
 
     /**
+     * bdump_unsafe() must show the real, unmasked value by design.
+     *
      * @runInSeparateProcess
      */
     public function test_bdump_unsafe_does_not_mask_anything(): void {
@@ -88,7 +106,7 @@ class bdump_test extends \basic_testcase {
         $secret = 'super-secret-value-' . bin2hex(random_bytes(4));
         bdump_unsafe(['dbpass' => $secret], 'my title');
 
-        $data = $this->dumpsPanelData();
+        $data = $this->dumps_panel_data();
         $entry = end($data);
 
         $this->assertStringContainsString($secret, $entry['dump'], 'bdump_unsafe() must show the real, unmasked value');
@@ -97,6 +115,8 @@ class bdump_test extends \basic_testcase {
     }
 
     /**
+     * bdump_unsafe() must add the "UNSAFE" title marker even with no title.
+     *
      * @runInSeparateProcess
      */
     public function test_bdump_unsafe_marks_title_even_when_none_given(): void {
@@ -104,7 +124,7 @@ class bdump_test extends \basic_testcase {
 
         bdump_unsafe('x');
 
-        $data = $this->dumpsPanelData();
+        $data = $this->dumps_panel_data();
         $this->assertStringContainsString('UNSAFE', end($data)['title']);
     }
 }

@@ -31,8 +31,10 @@ if ($hassiteconfig) {
     $ADMIN->add('tools', $settings);
 
     global $CFG, $DB;
-    if ($DB->get_manager()->table_exists('tool_tracy_deploy')
-            && !\tool_tracy_deployment_matches($CFG->wwwroot)) {
+    if (
+        $DB->get_manager()->table_exists('tool_tracy_deploy')
+            && !\tool_tracy_deployment_matches($CFG->wwwroot)
+    ) {
         $settings->add(new admin_setting_description(
             'tool_tracy/deploymentmismatch',
             get_string('deploymentmismatch', 'tool_tracy'),
@@ -73,5 +75,4 @@ if ($hassiteconfig) {
             'tracy' => get_string('handlerownership_tracy', 'tool_tracy'),
         ]
     ));
-
 }

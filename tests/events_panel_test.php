@@ -30,6 +30,8 @@ class events_panel_test extends \advanced_testcase {
     }
 
     /**
+     * The panel must show a placeholder message when no events fired.
+     *
      * @runInSeparateProcess
      */
     public function test_getpanel_shows_message_when_no_events_triggered(): void {
@@ -41,6 +43,9 @@ class events_panel_test extends \advanced_testcase {
     }
 
     /**
+     * The observer list must include a real third-party observer, not
+     * just our own.
+     *
      * @runInSeparateProcess
      */
     public function test_getpanel_lists_a_real_thirdparty_observer(): void {
@@ -52,13 +57,15 @@ class events_panel_test extends \advanced_testcase {
 
         $html = (new events_panel())->getPanel();
 
-        // tool_log's '*' observer showing up confirms the class-hierarchy
+        // Tool_log's '*' observer showing up confirms the class-hierarchy
         // walk finds more than just our own.
         $this->assertStringContainsString('tool_log', $html);
         $this->assertStringContainsString('tool_tracy', $html);
     }
 
     /**
+     * Event data must be scrubbed before rendering.
+     *
      * @runInSeparateProcess
      */
     public function test_getpanel_masks_sensitive_event_data(): void {
@@ -78,6 +85,9 @@ class events_panel_test extends \advanced_testcase {
     }
 
     /**
+     * A secret stored under a generic key inside "other" must still be
+     * masked fail-closed.
+     *
      * @runInSeparateProcess
      */
     public function test_getpanel_masks_a_secret_stored_under_a_generic_other_key(): void {
@@ -97,6 +107,8 @@ class events_panel_test extends \advanced_testcase {
     }
 
     /**
+     * Repeated events of the same class must be grouped once, with a count.
+     *
      * @runInSeparateProcess
      */
     public function test_getpanel_groups_repeated_events_by_class(): void {

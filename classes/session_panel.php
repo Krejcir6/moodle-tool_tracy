@@ -19,7 +19,7 @@
  *
  * $SESSION is a grab-bag any plugin can put anything in (SSO/LTI tokens
  * included), so like user_panel it's rendered via
- * bootstrap::scrubbedDumpOptions(), not a hand-picked field list.
+ * bootstrap::scrubbed_dump_options(), not a hand-picked field list.
  *
  * The raw session ID is never shown, hardcoded regardless of the scrubber
  * — leaking it is equivalent to leaking an auth cookie.
@@ -31,17 +31,30 @@
 
 namespace tool_tracy;
 
+/**
+ * Tracy Bar panel showing session metadata and $SESSION contents. See the
+ * file docblock above for why the raw session ID is never shown.
+ */
 final class session_panel implements \Tracy\IBarPanel {
-    public function getTab(): string {
+    /**
+     * Tab label shown in the debug bar.
+     * Named getTab() because it implements \Tracy\IBarPanel.
+     */
+    public function getTab(): string { // phpcs:ignore moodle.NamingConventions.ValidFunctionName.LowercaseMethod
         return '<span title="' . htmlspecialchars(get_string('session_title', 'tool_tracy'), ENT_QUOTES) . '">'
             . '<svg viewBox="0 0 24 24" width="16" height="16">'
             . '<circle cx="12" cy="12" r="9" fill="none" stroke="#6ba9e6" stroke-width="1.6"/>'
             . '<path d="M12 7v5l4 2" fill="none" stroke="#6ba9e6" stroke-width="1.6" stroke-linecap="round"/>'
             . '</svg>'
-            . '<span class="tracy-label">' . htmlspecialchars(get_string('session_label', 'tool_tracy'), ENT_QUOTES) . '</span></span>';
+            . '<span class="tracy-label">'
+            . htmlspecialchars(get_string('session_label', 'tool_tracy'), ENT_QUOTES) . '</span></span>';
     }
 
-    public function getPanel(): string {
+    /**
+     * Panel body: session metadata plus a scrubbed $SESSION dump.
+     * Named getPanel() because it implements \Tracy\IBarPanel.
+     */
+    public function getPanel(): string { // phpcs:ignore moodle.NamingConventions.ValidFunctionName.LowercaseMethod
         global $SESSION;
 
         $meta = [
@@ -49,8 +62,9 @@ final class session_panel implements \Tracy\IBarPanel {
             get_string('session_handler', 'tool_tracy') => ini_get('session.save_handler') ?: null,
         ];
 
-        $html = '<h1>' . htmlspecialchars(get_string('session_title', 'tool_tracy'), ENT_QUOTES) . '</h1><div class="tracy-inner">'
-            .'<table>';
+        $html = '<h1>' . htmlspecialchars(get_string('session_title', 'tool_tracy'), ENT_QUOTES) . '</h1>'
+            . '<div class="tracy-inner">'
+            . '<table>';
         foreach ($meta as $label => $value) {
             if ($value === null) {
                 continue;
@@ -61,9 +75,10 @@ final class session_panel implements \Tracy\IBarPanel {
         $html .= '</table>';
 
         $data = isset($SESSION) ? (array) $SESSION : [];
-        unset($data['sesskey']); // belt-and-braces alongside the scrubber
+        // Belt-and-braces alongside the scrubber.
+        unset($data['sesskey']);
 
-        $html .= \Tracy\Dumper::toHtml($data, bootstrap::scrubbedDumpOptions());
+        $html .= \Tracy\Dumper::toHtml($data, bootstrap::scrubbed_dump_options());
         $html .= '</div>';
 
         return $html;

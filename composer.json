@@ -4,9 +4,13 @@
     "type": "project",
     "license": "GPL-3.0-or-later",
     "require-dev": {
+        "moodlehq/moodle-cs": "^3.7",
         "phpstan/phpstan": "^1.11"
     },
     "config": {
-        "sort-packages": true
+        "sort-packages": true,
+        "allow-plugins": {
+            "dealerdirect/phpcodesniffer-composer-installer": true
+        }
     }
 }

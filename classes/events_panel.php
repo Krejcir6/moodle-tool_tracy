@@ -23,7 +23,7 @@
  * observers also needs its parent-class chain (a '*' registration becomes
  * \core\event\base internally) — that walk lives in
  * manager::get_observing_classes(), which is `protected`, so
- * observersFor() reimplements the same trivial get_parent_class() loop.
+ * observers_for() reimplements the same trivial get_parent_class() loop.
  *
  * @package    tool_tracy
  * @copyright  2026 Radek Krejci
@@ -32,8 +32,16 @@
 
 namespace tool_tracy;
 
+/**
+ * Tracy Bar panel showing triggered events and their observers. See the
+ * file docblock above for how observers are resolved per event class.
+ */
 final class events_panel implements \Tracy\IBarPanel {
-    public function getTab(): string {
+    /**
+     * Tab label shown in the debug bar, with the triggered-events count.
+     * Named getTab() because it implements \Tracy\IBarPanel.
+     */
+    public function getTab(): string { // phpcs:ignore moodle.NamingConventions.ValidFunctionName.LowercaseMethod
         $count = count(event_log::entries());
 
         return '<span title="' . htmlspecialchars(get_string('events_title', 'tool_tracy'), ENT_QUOTES) . '">'
@@ -46,11 +54,16 @@ final class events_panel implements \Tracy\IBarPanel {
             . '</span>';
     }
 
-    public function getPanel(): string {
+    /**
+     * Panel body: triggered events grouped by class, with their observers.
+     * Named getPanel() because it implements \Tracy\IBarPanel.
+     */
+    public function getPanel(): string { // phpcs:ignore moodle.NamingConventions.ValidFunctionName.LowercaseMethod
         $entries = event_log::entries();
 
         if ($entries === []) {
-            return '<h1>' . htmlspecialchars(get_string('events_title', 'tool_tracy'), ENT_QUOTES) . '</h1><div class="tracy-inner">'
+            return '<h1>' . htmlspecialchars(get_string('events_title', 'tool_tracy'), ENT_QUOTES) . '</h1>'
+                . '<div class="tracy-inner">'
                 . '<p>' . htmlspecialchars(get_string('events_none', 'tool_tracy'), ENT_QUOTES) . '</p></div>';
         }
 
@@ -66,10 +79,10 @@ final class events_panel implements \Tracy\IBarPanel {
         foreach ($groups as $class => $group) {
             $html .= '<h2>' . htmlspecialchars($class, ENT_QUOTES) . ' &times; ' . $group['count'] . '</h2>';
             $html .= \Tracy\Dumper::toHtml(
-                scrubber::scrubEventData($group['data']),
-                bootstrap::scrubbedDumpOptions()
+                scrubber::scrub_event_data($group['data']),
+                bootstrap::scrubbed_dump_options()
             );
-            $html .= $this->renderObservers($this->observersFor($class));
+            $html .= $this->render_observers($this->observers_for($class));
         }
 
         $html .= '</div>';
@@ -77,8 +90,14 @@ final class events_panel implements \Tracy\IBarPanel {
         return $html;
     }
 
-    /** @return array<int, \stdClass> */
-    private function observersFor(string $eventclass): array {
+    /**
+     * Resolves the observers Moodle would invoke for an event class,
+     * walking its parent-class hierarchy (a '*' registration becomes
+     * \core\event\base internally).
+     *
+     * @return array<int, \stdClass>
+     */
+    private function observers_for(string $eventclass): array {
         $hierarchy = ['\\' . ltrim($eventclass, '\\')];
         $parent = $eventclass;
         while ($parent = get_parent_class($parent)) {
@@ -98,13 +117,21 @@ final class events_panel implements \Tracy\IBarPanel {
         return $observers;
     }
 
-    /** @param array<int, \stdClass> $observers */
-    private function renderObservers(array $observers): string {
+    /**
+     * Renders an event's observers as an HTML table.
+     *
+     * @param array<int, \stdClass> $observers
+     */
+    private function render_observers(array $observers): string {
         if ($observers === []) {
             return '<p><em>' . htmlspecialchars(get_string('events_noobservers', 'tool_tracy'), ENT_QUOTES) . '</em></p>';
         }
 
-        $html = '<table><tr><th>' . htmlspecialchars(get_string('events_component', 'tool_tracy'), ENT_QUOTES) . '</th><th>' . htmlspecialchars(get_string('events_callback', 'tool_tracy'), ENT_QUOTES) . '</th><th>' . htmlspecialchars(get_string('events_priority', 'tool_tracy'), ENT_QUOTES) . '</th></tr>';
+        $html = '<table><tr>'
+            . '<th>' . htmlspecialchars(get_string('events_component', 'tool_tracy'), ENT_QUOTES) . '</th>'
+            . '<th>' . htmlspecialchars(get_string('events_callback', 'tool_tracy'), ENT_QUOTES) . '</th>'
+            . '<th>' . htmlspecialchars(get_string('events_priority', 'tool_tracy'), ENT_QUOTES) . '</th>'
+            . '</tr>';
         foreach ($observers as $observer) {
             $html .= '<tr>'
                 . '<td>' . htmlspecialchars((string) $observer->plugin, ENT_QUOTES) . '</td>'

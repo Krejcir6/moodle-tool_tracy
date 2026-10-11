@@ -25,6 +25,8 @@ namespace tool_tracy;
  */
 class event_log_test extends \advanced_testcase {
     /**
+     * observer::event_triggered() must stay a no-op until Tracy is enabled.
+     *
      * @runInSeparateProcess
      */
     public function test_observer_is_a_noop_when_tracy_is_not_enabled(): void {
@@ -42,6 +44,8 @@ class event_log_test extends \advanced_testcase {
     }
 
     /**
+     * observer::event_triggered() must record the event once Tracy is enabled.
+     *
      * @runInSeparateProcess
      */
     public function test_observer_records_the_event_once_tracy_is_enabled(): void {
@@ -60,6 +64,8 @@ class event_log_test extends \advanced_testcase {
     }
 
     /**
+     * event_log must cap stored entries to bound memory use.
+     *
      * @runInSeparateProcess
      */
     public function test_entries_cap_is_enforced(): void {

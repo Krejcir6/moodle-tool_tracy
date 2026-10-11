@@ -41,10 +41,14 @@ class bootstrap_test extends \basic_testcase {
         bootstrap::enable('development');
 
         $this->assertTrue(class_exists(\Tracy\Debugger::class, false));
+        // phpcs:ignore moodle.NamingConventions.ValidVariableName.VariableNameLowerCase
         $this->assertFalse(\Tracy\Debugger::$showBar);
     }
 
     /**
+     * enable() must map each accepted $mode value to the right Tracy
+     * productionMode.
+     *
      * @runInSeparateProcess
      * @dataProvider mode_provider
      */
@@ -54,15 +58,19 @@ class bootstrap_test extends \basic_testcase {
     ): void {
         bootstrap::enable($mode);
 
+        // phpcs:ignore moodle.NamingConventions.ValidVariableName.VariableNameLowerCase
         $this->assertSame($expectedproductionmode, \Tracy\Debugger::$productionMode);
     }
 
+    /**
+     * Data provider for test_enable_maps_mode_string_to_debugger_productionmode().
+     */
     public static function mode_provider(): array {
         return [
             'development string' => ['development', false],
             'production string' => ['production', true],
-            // detectDebugMode() resolves immediately to a bool; under CLI
-            // (no REMOTE_ADDR) that's always true (production).
+            // Tracy's detectDebugMode() resolves immediately to a bool;
+            // under CLI (no REMOTE_ADDR) that's always true (production).
             'detect string' => ['detect', true],
             'unrecognised string falls back to detect' => ['bogus', true],
             'raw bool true (Tracy\Debugger::Production)' => [true, true],
@@ -80,9 +88,9 @@ class bootstrap_test extends \basic_testcase {
         };
         set_exception_handler($marker);
 
-        bootstrap::hijackedHandlers();
+        bootstrap::hijacked_handlers();
 
-        // set_exception_handler() returns the *previous* handler, so calling
+        // Set_exception_handler() returns the *previous* handler, so calling
         // it again is the only way to read + immediately restore "current".
         $current = set_exception_handler($marker);
         set_exception_handler($current);
@@ -91,43 +99,53 @@ class bootstrap_test extends \basic_testcase {
     }
 
     /**
+     * hijacked_handlers() must detect Moodle's own default handlers.
+     *
      * @runInSeparateProcess
      */
     public function test_hijackedhandlers_detects_moodles_default_handlers(): void {
         set_exception_handler('default_exception_handler');
         set_error_handler('default_error_handler');
 
-        $this->assertSame(['exception', 'error'], bootstrap::hijackedHandlers());
+        $this->assertSame(['exception', 'error'], bootstrap::hijacked_handlers());
     }
 
     /**
+     * hijacked_handlers() must report nothing hijacked for non-Moodle handlers.
+     *
      * @runInSeparateProcess
      */
     public function test_hijackedhandlers_empty_when_handlers_are_not_moodles(): void {
         set_exception_handler(static fn () => null);
         set_error_handler(static fn () => false);
 
-        $this->assertSame([], bootstrap::hijackedHandlers());
+        $this->assertSame([], bootstrap::hijacked_handlers());
     }
 
     /**
+     * enable() with $keephandlers=false must restore whichever handlers
+     * were active before it ran.
+     *
      * @runInSeparateProcess
      */
     public function test_enable_can_restore_the_handlers_active_before_tracy(): void {
-        $exceptionHandler = static function (\Throwable $e): void {
+        $exceptionhandler = static function (\Throwable $e): void {
         };
-        $errorHandler = static fn (): bool => false;
-        set_exception_handler($exceptionHandler);
-        set_error_handler($errorHandler);
+        $errorhandler = static fn (): bool => false;
+        set_exception_handler($exceptionhandler);
+        set_error_handler($errorhandler);
 
         bootstrap::enable('development', null, false);
 
-        $current = bootstrap::captureHandlers();
-        $this->assertSame($exceptionHandler, $current['exception']);
-        $this->assertSame($errorHandler, $current['error']);
+        $current = bootstrap::capture_handlers();
+        $this->assertSame($exceptionhandler, $current['exception']);
+        $this->assertSame($errorhandler, $current['error']);
     }
 
     /**
+     * reclaim_handlers() must take the handlers back once Moodle has
+     * claimed them.
+     *
      * @runInSeparateProcess
      */
     public function test_reclaimhandlers_takes_the_handlers_back_from_moodle(): void {
@@ -136,14 +154,16 @@ class bootstrap_test extends \basic_testcase {
         // Simulate lib/setup.php claiming the handlers after enable() ran.
         set_exception_handler('default_exception_handler');
         set_error_handler('default_error_handler');
-        $this->assertSame(['exception', 'error'], bootstrap::hijackedHandlers());
+        $this->assertSame(['exception', 'error'], bootstrap::hijacked_handlers());
 
-        bootstrap::reclaimHandlers();
+        bootstrap::reclaim_handlers();
 
-        $this->assertSame([], bootstrap::hijackedHandlers(), 'Moodle\'s handlers must no longer be active');
+        $this->assertSame([], bootstrap::hijacked_handlers(), 'Moodle\'s handlers must no longer be active');
     }
 
     /**
+     * reclaim_handlers() must install Tracy's own real error handler.
+     *
      * @runInSeparateProcess
      */
     public function test_reclaimhandlers_installs_tracys_real_handlers(): void {
@@ -151,20 +171,23 @@ class bootstrap_test extends \basic_testcase {
         set_exception_handler('default_exception_handler');
         set_error_handler('default_error_handler');
 
-        bootstrap::reclaimHandlers();
+        bootstrap::reclaim_handlers();
 
-        $errorHandler = set_error_handler(static fn () => false);
-        set_error_handler($errorHandler);
-        $this->assertSame([\Tracy\Debugger::class, 'errorHandler'], $errorHandler);
+        $errorhandler = set_error_handler(static fn () => false);
+        set_error_handler($errorhandler);
+        $this->assertSame([\Tracy\Debugger::class, 'errorHandler'], $errorhandler);
     }
 
     /**
+     * reclaim_handlers() must be a harmless no-op if Tracy was never enabled.
+     *
      * @runInSeparateProcess
      */
     public function test_reclaimhandlers_does_not_throw_when_tracy_was_never_enabled(): void {
-        bootstrap::reclaimHandlers();
+        bootstrap::reclaim_handlers();
 
-        $this->addToAssertionCount(1); // reaching this line without a fatal is the assertion
+        // Reaching this line without a fatal error is the assertion.
+        $this->addToAssertionCount(1);
     }
 
     /**
@@ -186,12 +209,13 @@ class bootstrap_test extends \basic_testcase {
             'wwwroot does not look sensitive by name, but must be hidden because it is a real $CFG key'
         );
 
+        // phpcs:ignore moodle.NamingConventions.ValidVariableName.VariableNameLowerCase
         $this->assertContains('wwwroot', array_map('strtolower', \Tracy\Debugger::$keysToHide));
     }
 
     /**
      * $CFG only has ~30 properties when config.php calls enable() — the
-     * rest arrives later via initialise_cfg(). refreshCfgScrubbing() closes
+     * rest arrives later via initialise_cfg(). refresh_cfg_scrubbing() closes
      * that gap when called again once $CFG is complete.
      *
      * @runInSeparateProcess
@@ -199,7 +223,7 @@ class bootstrap_test extends \basic_testcase {
     public function test_refreshcfgscrubbing_covers_keys_added_to_cfg_after_enable(): void {
         global $CFG;
 
-        bootstrap::enable('development'); // snapshot taken before the key below exists
+        bootstrap::enable('development'); // Snapshot taken before the key below exists.
 
         // No "pass"/"secret"/etc substring: tests the exact-key mechanism, not the pattern.
         $CFG->tracy_test_late_marker = 'should-not-leak';
@@ -210,7 +234,7 @@ class bootstrap_test extends \basic_testcase {
             'sanity check: enable() could not have known about a key added after it ran'
         );
 
-        bootstrap::refreshCfgScrubbing();
+        bootstrap::refresh_cfg_scrubbing();
 
         $scrubberafter = \Tracy\Debugger::getBlueScreen()->scrubber;
         $this->assertTrue(
@@ -228,9 +252,10 @@ class bootstrap_test extends \basic_testcase {
      * @runInSeparateProcess
      */
     public function test_refreshcfgscrubbing_does_not_throw_regardless_of_enabled_state(): void {
-        bootstrap::refreshCfgScrubbing();
-        bootstrap::refreshCfgScrubbing();
+        bootstrap::refresh_cfg_scrubbing();
+        bootstrap::refresh_cfg_scrubbing();
 
-        $this->addToAssertionCount(1); // reaching this line without a fatal is the assertion
+        // Reaching this line without a fatal error is the assertion.
+        $this->addToAssertionCount(1);
     }
 }

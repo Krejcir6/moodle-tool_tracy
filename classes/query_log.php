@@ -27,6 +27,10 @@
 
 namespace tool_tracy;
 
+/**
+ * Stores per-query entries for the request. See the file docblock above
+ * for how entries get added and what happens without the core patch.
+ */
 final class query_log {
     /** Caps memory use on long-running/heavy scripts (CLI cron, bulk imports). */
     private const MAX_ENTRIES = 500;
@@ -34,6 +38,9 @@ final class query_log {
     /** @var array<int, array{sql: ?string, time: float, error: mixed}> */
     private static array $entries = [];
 
+    /**
+     * Records one query entry, dropping it once MAX_ENTRIES is reached.
+     */
     public static function add(?string $sql, float $time, mixed $error = false): void {
         if (count(self::$entries) >= self::MAX_ENTRIES) {
             return;
@@ -46,16 +53,26 @@ final class query_log {
         ];
     }
 
-    /** @return array<int, array{sql: ?string, time: float, error: mixed}> */
+    /**
+     * All query entries recorded so far this request.
+     *
+     * @return array<int, array{sql: ?string, time: float, error: mixed}>
+     */
     public static function entries(): array {
         return self::$entries;
     }
 
+    /**
+     * Clears all recorded query entries.
+     */
     public static function clear(): void {
         self::$entries = [];
     }
 
-    public static function totalTime(): float {
+    /**
+     * Combined time of all recorded query entries, in seconds.
+     */
+    public static function total_time(): float {
         return array_sum(array_column(self::$entries, 'time'));
     }
 }

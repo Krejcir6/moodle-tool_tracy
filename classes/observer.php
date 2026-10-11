@@ -27,7 +27,14 @@
 
 namespace tool_tracy;
 
+/**
+ * Target of the wildcard observer registered in db/events.php. See the
+ * file docblock above for why it stays a no-op until Tracy is enabled.
+ */
 final class observer {
+    /**
+     * Records the event into event_log, if Tracy is enabled.
+     */
     public static function event_triggered(\core\event\base $event): void {
         if (!class_exists(\Tracy\Debugger::class, false)) {
             return;

@@ -27,8 +27,16 @@
 
 namespace tool_tracy;
 
+/**
+ * Tracy Bar panel showing the current request/page. See the file
+ * docblock above for why $_SERVER/$PAGE are read lazily.
+ */
 final class routing_panel implements \Tracy\IBarPanel {
-    public function getTab(): string {
+    /**
+     * Tab label shown in the debug bar: method and shortened path.
+     * Named getTab() because it implements \Tracy\IBarPanel.
+     */
+    public function getTab(): string { // phpcs:ignore moodle.NamingConventions.ValidFunctionName.LowercaseMethod
         $method = $_SERVER['REQUEST_METHOD'] ?? get_string('routing_cli', 'tool_tracy');
         $path = $this->shorten($this->path());
 
@@ -38,11 +46,17 @@ final class routing_panel implements \Tracy\IBarPanel {
             . '<path d="M12 3v3M12 18v3M3 12h3M18 12h3" stroke="#6ba9e6" stroke-width="1.6"/>'
             . '<path d="M12 12l4-2-2 4z" fill="#6ba9e6"/>'
             . '</svg>'
-            . '<span class="tracy-label">' . htmlspecialchars($method, ENT_QUOTES) . ' ' . htmlspecialchars($path, ENT_QUOTES) . '</span>'
+            . '<span class="tracy-label">' . htmlspecialchars($method, ENT_QUOTES) . ' '
+            . htmlspecialchars($path, ENT_QUOTES) . '</span>'
             . '</span>';
     }
 
-    public function getPanel(): string {
+    /**
+     * Panel body: request method/URL, page type/layout/context/course,
+     * and scrubbed GET parameters.
+     * Named getPanel() because it implements \Tracy\IBarPanel.
+     */
+    public function getPanel(): string { // phpcs:ignore moodle.NamingConventions.ValidFunctionName.LowercaseMethod
         global $PAGE;
 
         $rows = [
@@ -59,7 +73,8 @@ final class routing_panel implements \Tracy\IBarPanel {
                 : null,
         ];
 
-        $html = '<h1>' . htmlspecialchars(get_string('routing_title', 'tool_tracy'), ENT_QUOTES) . '</h1><div class="tracy-inner"><table>';
+        $html = '<h1>' . htmlspecialchars(get_string('routing_title', 'tool_tracy'), ENT_QUOTES) . '</h1>'
+            . '<div class="tracy-inner"><table>';
         foreach ($rows as $label => $value) {
             if ($value === null || $value === '') {
                 continue;
@@ -72,8 +87,8 @@ final class routing_panel implements \Tracy\IBarPanel {
         if ($_GET !== []) {
             $html .= '<h2>' . htmlspecialchars(get_string('routing_getparams', 'tool_tracy'), ENT_QUOTES) . '</h2>';
             $html .= \Tracy\Dumper::toHtml(
-                scrubber::scrubArray($_GET),
-                bootstrap::scrubbedDumpOptions()
+                scrubber::scrub_array($_GET),
+                bootstrap::scrubbed_dump_options()
             );
         }
 
@@ -82,7 +97,9 @@ final class routing_panel implements \Tracy\IBarPanel {
         return $html;
     }
 
-    /** Request path only. GET parameters are rendered separately from $_GET. */
+    /**
+     * Request path only. GET parameters are rendered separately from $_GET.
+     */
     private function path(): string {
         $host = $_SERVER['HTTP_HOST'] ?? null;
         $uri = $_SERVER['REQUEST_URI'] ?? null;
@@ -96,6 +113,9 @@ final class routing_panel implements \Tracy\IBarPanel {
         return $host !== null ? "//{$host}{$path}" : $path;
     }
 
+    /**
+     * Truncates a long path for the tab label.
+     */
     private function shorten(string $path): string {
         return strlen($path) > 60 ? substr($path, 0, 57) . '…' : $path;
     }

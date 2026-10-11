@@ -17,7 +17,7 @@
 namespace tool_tracy;
 
 /**
- * Tests for \tool_tracy\bootstrap::abortOpenTransactions().
+ * Tests for \tool_tracy\bootstrap::abort_open_transactions().
  *
  * Separate file from bootstrap_test.php: needs a real $DB transaction, so
  * \advanced_testcase, unlike the rest of that file's \basic_testcase.
@@ -34,19 +34,25 @@ class reclaim_handlers_test extends \advanced_testcase {
         $transaction = $DB->start_delegated_transaction();
         $this->assertTrue($DB->is_transaction_started());
 
-        bootstrap::abortOpenTransactions();
+        bootstrap::abort_open_transactions();
 
         $this->assertFalse($DB->is_transaction_started());
 
-        unset($transaction); // now defunct — force-rolled-back out from under it
+        unset($transaction); // Now defunct — force-rolled-back out from under it.
     }
 
     public function test_is_a_harmless_noop_without_an_open_transaction(): void {
+        // Guards against the DB-level transaction state the previous test's
+        // force-aborted $transaction can otherwise leave behind once its
+        // own (now-defunct) destructor runs — resetAfterTest() clears that,
+        // the same way the previous test already resets after itself.
+        $this->resetAfterTest();
+
         global $DB;
 
         $this->assertFalse($DB->is_transaction_started());
 
-        bootstrap::abortOpenTransactions();
+        bootstrap::abort_open_transactions();
 
         $this->assertFalse($DB->is_transaction_started());
     }

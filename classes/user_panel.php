@@ -17,7 +17,7 @@
 /**
  * Tracy Bar panel showing the current $USER.
  *
- * Dumps $USER wholesale through bootstrap::scrubbedDumpOptions() rather
+ * Dumps $USER wholesale through bootstrap::scrubbed_dump_options() rather
  * than hand-picking "safe" fields — same reasoning as $CFG: any auth/SSO
  * plugin can add properties, and a hand-picked list would go stale. Always
  * the *viewing* user's own data, but the bar is visible to every logged-in
@@ -30,8 +30,16 @@
 
 namespace tool_tracy;
 
+/**
+ * Tracy Bar panel showing the current $USER. See the file docblock above
+ * for why it dumps $USER wholesale rather than hand-picking fields.
+ */
 final class user_panel implements \Tracy\IBarPanel {
-    public function getTab(): string {
+    /**
+     * Tab label shown in the debug bar, with the current user's identity.
+     * Named getTab() because it implements \Tracy\IBarPanel.
+     */
+    public function getTab(): string { // phpcs:ignore moodle.NamingConventions.ValidFunctionName.LowercaseMethod
         global $USER;
 
         $label = (!empty($USER->id) && (int) $USER->id > 0)
@@ -47,7 +55,11 @@ final class user_panel implements \Tracy\IBarPanel {
             . '</span>';
     }
 
-    public function getPanel(): string {
+    /**
+     * Panel body: login/guest/admin flags plus a scrubbed $USER dump.
+     * Named getPanel() because it implements \Tracy\IBarPanel.
+     */
+    public function getPanel(): string { // phpcs:ignore moodle.NamingConventions.ValidFunctionName.LowercaseMethod
         global $USER;
 
         $flags = [
@@ -56,14 +68,15 @@ final class user_panel implements \Tracy\IBarPanel {
             get_string('user_siteadmin', 'tool_tracy') => get_string(is_siteadmin() ? 'yes' : 'no'),
         ];
 
-        $html = '<h1>' . htmlspecialchars(get_string('user_title', 'tool_tracy'), ENT_QUOTES) . '</h1><div class="tracy-inner"><table>';
+        $html = '<h1>' . htmlspecialchars(get_string('user_title', 'tool_tracy'), ENT_QUOTES) . '</h1>'
+            . '<div class="tracy-inner"><table>';
         foreach ($flags as $label => $value) {
             $html .= '<tr><th>' . htmlspecialchars($label, ENT_QUOTES) . '</th>'
                 . '<td>' . htmlspecialchars($value, ENT_QUOTES) . '</td></tr>';
         }
         $html .= '</table>';
 
-        $html .= \Tracy\Dumper::toHtml((array) $USER, bootstrap::scrubbedDumpOptions());
+        $html .= \Tracy\Dumper::toHtml((array) $USER, bootstrap::scrubbed_dump_options());
         $html .= '</div>';
 
         return $html;

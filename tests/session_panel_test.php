@@ -30,6 +30,8 @@ class session_panel_test extends \basic_testcase {
     }
 
     /**
+     * The raw PHP session ID must never be shown, regardless of scrubbing.
+     *
      * @runInSeparateProcess
      */
     public function test_getpanel_never_shows_the_raw_session_id(): void {
@@ -44,6 +46,9 @@ class session_panel_test extends \basic_testcase {
     }
 
     /**
+     * sesskey must be hidden unconditionally, as belt-and-braces alongside
+     * the scrubber.
+     *
      * @runInSeparateProcess
      */
     public function test_getpanel_explicitly_excludes_sesskey_even_without_the_scrubber(): void {
@@ -59,6 +64,8 @@ class session_panel_test extends \basic_testcase {
     }
 
     /**
+     * $SESSION values that look sensitive by name must be masked.
+     *
      * @runInSeparateProcess
      */
     public function test_getpanel_masks_sensitive_looking_session_values(): void {
