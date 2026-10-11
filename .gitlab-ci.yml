@@ -10,8 +10,6 @@ stages:
 - secret-detection
 variables:
   SECRET_DETECTION_ENABLED: 'true'
-  MOODLE_BRANCH: MOODLE_405_STABLE
-  PHP_VERSION: '8.1'
   DB: pgsql
 
 # Runs the same checks the Moodle Plugins directory / Marketplace review
@@ -19,8 +17,19 @@ variables:
 # (moodlehq/moodle-plugin-ci only documents GitHub Actions and the
 # deprecated Travis CI), so this job installs it via Composer directly,
 # following the community pattern for running it under GitLab CI.
+#
+# Matrix mirrors the two directory layouts this plugin supports (see
+# README.md): 4.5's classic admin/tool/tracy layout and 5.1's public/
+# admin/tool/tracy layout, each paired with the PHP range Moodle itself
+# supports for that branch (docs.moodle.org/en/PHP).
 moodle-plugin-ci:
   stage: test
+  parallel:
+    matrix:
+      - MOODLE_BRANCH: MOODLE_405_STABLE
+        PHP_VERSION: ['8.1', '8.2', '8.3']
+      - MOODLE_BRANCH: MOODLE_501_STABLE
+        PHP_VERSION: ['8.2', '8.3', '8.4']
   image: moodlehq/moodle-php-apache:${PHP_VERSION}
   variables:
     POSTGRES_USER: postgres
