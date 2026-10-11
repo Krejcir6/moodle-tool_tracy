@@ -43,6 +43,8 @@ class database_panel_test extends \basic_testcase {
         $html = (new database_panel())->getPanel();
 
         $this->assertStringContainsString('Duplicate queries', $html);
+        $this->assertStringNotContainsString('&amp;ge;', $html, 'legend entities must not be double-escaped');
+        $this->assertStringNotContainsString('&amp;times;', $html);
         $this->assertStringContainsString(htmlspecialchars($marker, ENT_QUOTES), $html);
         // 6 occurrences * 0.01s each = 0.06s = 60.00 ms combined.
         $this->assertStringContainsString('60.00 ms', $html);

@@ -72,7 +72,7 @@ final class database_panel implements \Tracy\IBarPanel {
 
         $rows = [
             get_string('db_reads', 'tool_tracy') => method_exists($DB, 'perf_get_reads') ? $DB->perf_get_reads() : null,
-            get_string('db_reads_replica', 'tool_tracy') => method_exists($DB, 'perf_get_reads_slave') ? $DB->perf_get_reads_slave() : null,
+            get_string('db_reads_replica', 'tool_tracy') => $this->readsReplica($DB),
             get_string('db_writes', 'tool_tracy') => method_exists($DB, 'perf_get_writes') ? $DB->perf_get_writes() : null,
             get_string('db_totaltime', 'tool_tracy') => method_exists($DB, 'perf_get_queries_time')
                 ? sprintf('%.2f ms', $DB->perf_get_queries_time() * 1000)
@@ -139,6 +139,15 @@ final class database_panel implements \Tracy\IBarPanel {
         $html .= '</div>';
 
         return $html;
+    }
+
+    /** Moodle 5.1 renamed perf_get_reads_slave() to perf_get_reads_replica() and deprecated the old name. */
+    private function readsReplica(\moodle_database $db): ?int {
+        return match (true) {
+            method_exists($db, 'perf_get_reads_replica') => $db->perf_get_reads_replica(),
+            method_exists($db, 'perf_get_reads_slave') => $db->perf_get_reads_slave(),
+            default => null,
+        };
     }
 
     /**
