@@ -1,7 +1,7 @@
 # tool_tracy
 
 [![Moodle 4.5+](https://img.shields.io/badge/Moodle-4.5%2B-f98012)](https://moodledev.io/general/releases)
-[![Release 0.3.0](https://img.shields.io/badge/release-0.3.0-blue)](https://github.com/Krejcir6/moodle-tool_tracy/releases)
+[![Release 0.3.1](https://img.shields.io/badge/release-0.3.1-blue)](https://github.com/Krejcir6/moodle-tool_tracy/releases)
 [![Maturity: alpha](https://img.shields.io/badge/maturity-alpha-c2410c)](#known-limitations-skeleton-not-production-hardened)
 [![License: GPL-3.0-or-later](https://img.shields.io/badge/license-GPL--3.0--or--later-2f855a)](LICENSE)
 
