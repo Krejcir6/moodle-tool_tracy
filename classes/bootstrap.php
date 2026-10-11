@@ -118,14 +118,19 @@ final class bootstrap {
     /**
      * Captures the currently active PHP handlers without changing them.
      *
+     * Both handler kinds are stacks in PHP (restore_error_handler()/
+     * restore_exception_handler() pop one level) — peeking has to pop the
+     * probe straight back off, not push a second "restore" on top of it,
+     * or every peek leaks one extra stack level per call.
+     *
      * @return array{exception: callable|null, error: callable|null}
      */
     public static function capture_handlers(): array {
         $exceptionhandler = set_exception_handler(static fn () => null);
-        set_exception_handler($exceptionhandler);
+        restore_exception_handler();
 
         $errorhandler = set_error_handler(static fn () => false);
-        set_error_handler($errorhandler);
+        restore_error_handler();
 
         return [
             'exception' => $exceptionhandler,
@@ -167,11 +172,12 @@ final class bootstrap {
     }
 
     /**
-     * PHP has one active exception/error handler at a time, no stacking.
      * lib/setup.php unconditionally installs Moodle's own
      * default_exception_handler/default_error_handler, stealing them back
      * from Tracy if enable() ran earlier (the low-level path). Peeks
-     * without disturbing whichever handler currently holds it.
+     * without disturbing whichever handler currently holds it — see
+     * capture_handlers() for why that means popping the probe, not pushing
+     * a second "restore" on top of it.
      *
      * @return string[] Any of 'exception', 'error' — which Moodle reclaimed.
      */
@@ -179,13 +185,13 @@ final class bootstrap {
         $hijacked = [];
 
         $exceptionhandler = set_exception_handler(static fn () => null);
-        set_exception_handler($exceptionhandler);
+        restore_exception_handler();
         if ($exceptionhandler === 'default_exception_handler') {
             $hijacked[] = 'exception';
         }
 
         $errorhandler = set_error_handler(static fn () => false);
-        set_error_handler($errorhandler);
+        restore_error_handler();
         if ($errorhandler === 'default_error_handler') {
             $hijacked[] = 'error';
         }

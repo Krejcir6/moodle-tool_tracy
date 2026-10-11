@@ -29,6 +29,48 @@ namespace tool_tracy;
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 final class bootstrap_test extends \basic_testcase {
+    /** @var array{exception:callable|null,error:callable|null} */
+    private array $originalhandlers;
+
+    protected function setUp(): void {
+        parent::setUp();
+        $this->originalhandlers = bootstrap::capture_handlers();
+    }
+
+    /**
+     * Several tests here deliberately install exception/error handlers to
+     * exercise enable()/reclaim_handlers() — pops the handler stacks back
+     * down to whatever setUp() captured, however many extra layers
+     * accumulated above it. Moodle disables both PHPUnit process isolation
+     * and static-property backup suite-wide (phpunit.xml's
+     * processIsolation="false"/backupStaticProperties="false"), so
+     * \Tracy\Debugger's own "enabled once" static flag — and therefore the
+     * exact number of layers a given test leaves behind — depends on
+     * whether an earlier test already enabled it, not just on this test's
+     * own code. A fixed pop count would be correct for one run order and
+     * wrong for another; unwinding until the known target reappears is not.
+     */
+    protected function tearDown(): void {
+        for ($i = 0; $i < 20; $i++) {
+            $current = set_exception_handler(static fn () => null);
+            restore_exception_handler();
+            if ($current === $this->originalhandlers['exception']) {
+                break;
+            }
+            restore_exception_handler();
+        }
+        for ($i = 0; $i < 20; $i++) {
+            $current = set_error_handler(static fn () => false);
+            restore_error_handler();
+            if ($current === $this->originalhandlers['error']) {
+                break;
+            }
+            restore_error_handler();
+        }
+
+        parent::tearDown();
+    }
+
     /**
      * enable() must never turn the debug bar on for CLI/cron scripts, since
      * there is no browser to render it in and nothing should be injected

@@ -35,7 +35,9 @@ moodle-plugin-ci:
     POSTGRES_USER: postgres
     POSTGRES_HOST_AUTH_METHOD: trust
   services:
-  - name: postgres:14
+  # Moodle 4.5 needs postgres >= 13, Moodle 5.1 needs >= 15
+  # (admin/environment.xml) — 15 covers both branches in the matrix.
+  - name: postgres:15
     alias: postgres
   before_script:
   # Move the checked-out repo into ./plugin, the layout moodle-plugin-ci expects.

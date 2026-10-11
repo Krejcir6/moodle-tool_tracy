@@ -28,7 +28,9 @@ jobs:
 
     services:
       postgres:
-        image: postgres:14
+        # Moodle 4.5 needs postgres >= 13, Moodle 5.1 needs >= 15
+        # (admin/environment.xml) — 15 covers both branches in the matrix.
+        image: postgres:15
         env:
           POSTGRES_USER: 'postgres'
           POSTGRES_HOST_AUTH_METHOD: 'trust'

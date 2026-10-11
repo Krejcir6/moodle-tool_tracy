@@ -29,6 +29,40 @@ namespace tool_tracy;
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 final class bdump_test extends \basic_testcase {
+    /** @var array{exception:callable|null,error:callable|null} */
+    private array $originalhandlers;
+
+    protected function setUp(): void {
+        parent::setUp();
+        $this->originalhandlers = bootstrap::capture_handlers();
+    }
+
+    /**
+     * Every test here calls bootstrap::enable(), which installs Tracy's own
+     * exception/error handlers — see bootstrap_test.php's tearDown() for why
+     * this has to unwind to a known target rather than pop a fixed count.
+     */
+    protected function tearDown(): void {
+        for ($i = 0; $i < 20; $i++) {
+            $current = set_exception_handler(static fn () => null);
+            restore_exception_handler();
+            if ($current === $this->originalhandlers['exception']) {
+                break;
+            }
+            restore_exception_handler();
+        }
+        for ($i = 0; $i < 20; $i++) {
+            $current = set_error_handler(static fn () => false);
+            restore_error_handler();
+            if ($current === $this->originalhandlers['error']) {
+                break;
+            }
+            restore_error_handler();
+        }
+
+        parent::tearDown();
+    }
+
     /**
      * Reads back the Tracy bar's "Tracy:dumps" panel data, as populated by
      * bdump()/bdump_unsafe().
