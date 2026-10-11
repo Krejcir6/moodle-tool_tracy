@@ -194,6 +194,20 @@ Moodle development, not just crash reporting.
       documented `string`, `settings.php` was passing `1`/`0` (int).
       `[OK] No errors` after fixes — see README.md's "Static analysis".
 
+## Planned
+
+- [ ] **Custom panels registered by other plugins.** Let any Moodle plugin
+      add its own tab to the debug bar (its own `\Tracy\IBarPanel`), so
+      project-specific diagnostics (a course format's cache, an integration's
+      API calls, a queue) sit next to the built-in Routing/User/Session/
+      Database/Events panels. Sketch: a Moodle hook (e.g.
+      `\tool_tracy\hook\register_panels`) dispatched from
+      `tool_tracy_after_config()` after the built-in panels are added; plugins
+      subscribe in their own `db/hooks.php` and call `$hook->add_panel()`.
+      Open questions: panels must go through `bootstrap::scrubbedDumpOptions()`
+      (document it, maybe offer a helper), and a panel that throws must not
+      break the bar (Tracy already isolates a failing panel).
+
 ## Explicitly out of scope for now
 
 - Trusted proxy and advanced IP allowlist handling beyond Moodle's

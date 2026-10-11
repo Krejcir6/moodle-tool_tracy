@@ -1,7 +1,65 @@
 # tool_tracy
 
-Integrates the [Tracy](https://tracy.nette.org) debugger into Moodle: bluescreen
-on uncaught errors/exceptions and the debug bar.
+[![Moodle 4.5+](https://img.shields.io/badge/Moodle-4.5%2B-f98012)](https://moodledev.io/general/releases)
+[![Release 0.3.0](https://img.shields.io/badge/release-0.3.0-blue)](https://github.com/Krejcir6/moodle-tool_tracy/releases)
+[![Maturity: alpha](https://img.shields.io/badge/maturity-alpha-c2410c)](#known-limitations-skeleton-not-production-hardened)
+[![License: GPL-3.0-or-later](https://img.shields.io/badge/license-GPL--3.0--or--later-2f855a)](LICENSE)
+
+A [Tracy](https://tracy.nette.org) debug bar and bluescreen for Moodle
+developers, with SQL and N+1 detection, event observer inspection, request
+context, and safe secret masking.
+
+**[Project website](https://krejcir6.github.io/moodle-tool_tracy/)** ·
+**[Installation](#installation)** ·
+**[Report an issue](https://github.com/Krejcir6/moodle-tool_tracy/issues)**
+
+![The tool_tracy Database panel listing SQL queries and highlighting repeated queries](docs/img/panel-database.png)
+
+> [!WARNING]
+> tool_tracy is alpha development software intended for development and staging
+> sites. Keep it disabled in production.
+
+## Why I built it
+
+I spent two years working as a junior Nette developer. During that time I grew
+used to Tracy and to the developer experience around the Nette ecosystem. When
+I later started working with Moodle, I missed that visibility: even with
+debugging enabled, the standard exception pages often did not give me enough
+context to understand what had happened during the request.
+
+I had no practical experience with Xdebug at the time, but I already knew and
+trusted Tracy, so I started by integrating its basic bluescreen into Moodle.
+Once that worked, it became clear that Tracy could be more useful if it also
+understood Moodle itself. I began adding panels for Moodle-specific information
+such as routing, the current user and session, database queries, and events with
+their observers.
+
+That is how tool_tracy began: as a familiar debugger brought into a new
+environment, then gradually shaped into a Moodle development tool.
+
+## Tracy and Xdebug
+
+They solve different parts of the same debugging problem and work well
+together. Tracy helps you understand the whole Moodle request: the exception,
+call stack, routing, SQL queries, repeated queries, and events. Xdebug lets you
+pause at a breakpoint and step through the exact code path while inspecting
+changing variables.
+
+Use Tracy first when you do not yet know where to look. Once it identifies a
+promising call, query, or event, use Xdebug for line-by-line investigation.
+Tracy is not a replacement for Xdebug; it shortens the path to the right
+breakpoint.
+
+## Quick start
+
+1. Install the plugin into `admin/tool/tracy` (Moodle 5.1+: `public/admin/tool/tracy`).
+2. Visit **Site administration → Notifications** to complete installation.
+3. Open **Site administration → Plugins → Admin tools → Tracy debugger**.
+4. Leave **Tracy activation** at **Administrators only** while evaluating it.
+5. Open a Moodle page as a site administrator and inspect the debug bar.
+
+Use the plugin on development or staging sites. Keep it disabled in production;
+the debug bar and bluescreen expose application internals by design.
 
 ## Requirements
 
@@ -17,6 +75,18 @@ Clone this repository into `<moodleroot>/admin/tool/tracy` (Moodle 5.1+:
 `<moodleroot>/public/admin/tool/tracy`). The directory name must be `tracy`,
 because Moodle derives the component name `tool_tracy` from its parent/self
 folder names. Then follow **Setup** below.
+
+Moodle 4.5-5.0:
+
+```bash
+git clone https://github.com/Krejcir6/moodle-tool_tracy.git admin/tool/tracy
+```
+
+Moodle 5.1+:
+
+```bash
+git clone https://github.com/Krejcir6/moodle-tool_tracy.git public/admin/tool/tracy
+```
 
 ## Why an admin tool, and why the config.php line
 
