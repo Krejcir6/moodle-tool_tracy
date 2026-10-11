@@ -10,6 +10,50 @@ stages:
 - secret-detection
 variables:
   SECRET_DETECTION_ENABLED: 'true'
+  MOODLE_BRANCH: MOODLE_405_STABLE
+  PHP_VERSION: '8.1'
+  DB: pgsql
+
+# Runs the same checks the Moodle Plugins directory / Marketplace review
+# expects (moodle-plugin-ci). No official GitLab CI support exists upstream
+# (moodlehq/moodle-plugin-ci only documents GitHub Actions and the
+# deprecated Travis CI), so this job installs it via Composer directly,
+# following the community pattern for running it under GitLab CI.
+moodle-plugin-ci:
+  stage: test
+  image: moodlehq/moodle-php-apache:${PHP_VERSION}
+  variables:
+    POSTGRES_USER: postgres
+    POSTGRES_HOST_AUTH_METHOD: trust
+  services:
+  - name: postgres:14
+    alias: postgres
+  before_script:
+  # Move the checked-out repo into ./plugin, the layout moodle-plugin-ci expects.
+  - cd ..
+  - mv "$CI_PROJECT_DIR" plugin
+  - mkdir "$CI_PROJECT_DIR"
+  - mv plugin "$CI_PROJECT_DIR/plugin"
+  - cd "$CI_PROJECT_DIR"
+  - apt-get update -yqq
+  - apt-get install -yqq --no-install-recommends npm postgresql-client unzip git
+  - curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
+  - composer create-project -n --no-dev --prefer-dist moodlehq/moodle-plugin-ci ci ^4
+  - export PATH="$CI_PROJECT_DIR/ci/bin:$CI_PROJECT_DIR/ci/vendor/bin:$PATH"
+  - locale-gen en_AU.UTF-8 || true
+  - moodle-plugin-ci install --plugin ./plugin --db-host=postgres
+  script:
+  - moodle-plugin-ci phplint
+  - moodle-plugin-ci phpmd || true
+  - moodle-plugin-ci phpcs --max-warnings 0
+  - moodle-plugin-ci phpdoc --max-warnings 0
+  - moodle-plugin-ci validate
+  - moodle-plugin-ci savepoints
+  - moodle-plugin-ci mustache
+  - moodle-plugin-ci grunt --max-lint-warnings 0
+  - moodle-plugin-ci phpunit --fail-on-warning
+  - moodle-plugin-ci behat --profile chrome
+
 secret_detection:
   stage: secret-detection
 include:
