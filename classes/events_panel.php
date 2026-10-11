@@ -121,7 +121,9 @@ final class events_panel implements \Tracy\IBarPanel {
     /**
      * Renders an event's observers as an HTML table.
      *
-     * @param array $observers The observers to render, as \stdClass objects.
+     * @param array $observers The observers to render.
+     * phpcs:ignore moodle.Commenting.ValidTags.Invalid
+     * @phpstan-param array<int,\stdClass> $observers
      * @return string The rendered HTML table.
      */
     private function render_observers(array $observers): string {

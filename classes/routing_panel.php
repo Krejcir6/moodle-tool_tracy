@@ -105,7 +105,9 @@ final class routing_panel implements \Tracy\IBarPanel {
         $uri = $_SERVER['REQUEST_URI'] ?? null;
 
         if ($uri === null) {
-            return get_string('routing_cli_pid', 'tool_tracy', getmypid());
+            $pid = getmypid();
+
+            return get_string('routing_cli_pid', 'tool_tracy', $pid !== false ? $pid : 0);
         }
 
         $path = explode('?', $uri, 2)[0];

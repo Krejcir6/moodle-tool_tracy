@@ -61,8 +61,11 @@ final class event_log_test extends \advanced_testcase {
         observer::event_triggered($event);
 
         $entries = event_log::entries();
-        $this->assertNotEmpty($entries);
-        $this->assertSame(\core\event\user_loggedin::class, end($entries)['class']);
+        $last = end($entries);
+        if ($last === false) {
+            $this->fail('No event was recorded.');
+        }
+        $this->assertSame(\core\event\user_loggedin::class, $last['class']);
     }
 
     /**

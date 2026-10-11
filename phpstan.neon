@@ -1,5 +1,5 @@
 parameters:
-    level: 5
+    level: max
     paths:
         - classes
         - tests
@@ -29,7 +29,3 @@ parameters:
         # context_system: legacy alias Moodle creates at runtime, not statically visible.
         -
             message: '#unknown class context_system#'
-        # default_exception_handler()'s $ex has no type hint in Moodle core — not ours to fix.
-        -
-            message: '#set_exception_handler expects .*, .default_exception#'
-            path: tests/bootstrap_test.php

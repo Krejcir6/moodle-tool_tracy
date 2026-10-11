@@ -94,8 +94,10 @@ final class scrubber {
      * Recursively masks sensitive keys in request-style arrays.
      *
      * @param array $values The array to scrub, recursively.
+     * phpcs:ignore moodle.Commenting.ValidTags.Invalid
+     * @phpstan-param array<array-key,mixed> $values
      * @param string $level One of self::LEVEL_STRICT or self::LEVEL_MODERATE.
-     * @return array $values, with sensitive-looking values masked.
+     * @return array<array-key,mixed> $values, with sensitive-looking values masked.
      */
     public static function scrub_array(array $values, string $level = self::LEVEL_STRICT): array {
         $scrub = self::for_level($level);
@@ -117,7 +119,9 @@ final class scrubber {
      * arbitrary components rather than the Events API.
      *
      * @param array $data The event's "other" payload and friends.
-     * @return array $data, with sensitive-looking values masked.
+     * phpcs:ignore moodle.Commenting.ValidTags.Invalid
+     * @phpstan-param array<string,mixed> $data
+     * @return array<string,mixed> $data, with sensitive-looking values masked.
      */
     public static function scrub_event_data(array $data): array {
         if (array_key_exists('other', $data)) {

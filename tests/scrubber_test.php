@@ -43,6 +43,8 @@ final class scrubber_test extends \basic_testcase {
 
     /**
      * Data provider for test_strict_level_hides_sensitive_looking_keys().
+     *
+     * @return array<string,array{string}>
      */
     public static function strict_sensitive_key_provider(): array {
         // The concrete case this whole feature exists for: $CFG->dbpass
@@ -74,6 +76,8 @@ final class scrubber_test extends \basic_testcase {
 
     /**
      * Data provider for test_strict_level_leaves_ordinary_keys_alone().
+     *
+     * @return array<string,array{string}>
      */
     public static function strict_safe_key_provider(): array {
         return [
@@ -170,8 +174,12 @@ final class scrubber_test extends \basic_testcase {
             'other' => ['value' => 'SECRET_UNDER_GENERIC_KEY', 'count' => 3],
         ]);
 
-        $this->assertSame('***', $scrubbed['other']['value']);
-        $this->assertSame(3, $scrubbed['other']['count']);
+        $other = $scrubbed['other'];
+        if (!is_array($other)) {
+            $this->fail('Expected "other" to remain an array after scrubbing.');
+        }
+        $this->assertSame('***', $other['value']);
+        $this->assertSame(3, $other['count']);
     }
 
     public function test_scrubeventdata_decodes_and_scrubs_json_in_other(): void {
@@ -179,7 +187,15 @@ final class scrubber_test extends \basic_testcase {
             'other' => ['payload' => '{"token":"SECRET_TOKEN","enabled":true}'],
         ]);
 
-        $this->assertSame('***', $scrubbed['other']['payload']['token']);
-        $this->assertTrue($scrubbed['other']['payload']['enabled']);
+        $other = $scrubbed['other'];
+        if (!is_array($other)) {
+            $this->fail('Expected "other" to remain an array after scrubbing.');
+        }
+        $payload = $other['payload'];
+        if (!is_array($payload)) {
+            $this->fail('Expected the decoded JSON payload to remain an array after scrubbing.');
+        }
+        $this->assertSame('***', $payload['token']);
+        $this->assertTrue($payload['enabled']);
     }
 }

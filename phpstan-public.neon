@@ -1,0 +1,17 @@
+includes:
+    - phpstan.neon
+
+# For Moodle 5.1+'s public/ directory layout. lib/ and privacy/ moved under
+# public/ (so phpstan.neon's %currentWorkingDirectory%-relative paths keep
+# working once this is run from inside public/), but vendor/ — including
+# PHPUnit, which tests/*.php's base classes (basic_testcase/advanced_testcase)
+# need — stayed at the Moodle root, one level above. Classic-layout runs get
+# this for free: PHPStan auto-discovers vendor/autoload.php when it sits
+# directly in the current working directory, which is only still true there.
+#
+# Run from inside public/, e.g.:
+#   cd public && php admin/tool/tracy/vendor/bin/phpstan analyse \
+#       --memory-limit=1G -c admin/tool/tracy/phpstan-public.neon
+parameters:
+    bootstrapFiles:
+        - %currentWorkingDirectory%/../vendor/autoload.php

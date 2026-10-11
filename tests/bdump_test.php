@@ -33,13 +33,30 @@ final class bdump_test extends \basic_testcase {
      * Reads back the Tracy bar's "Tracy:dumps" panel data, as populated by
      * bdump()/bdump_unsafe().
      *
-     * @return array<int, array{title: ?string, dump: string}>
+     * @return array<int,array{title:?string,dump:string}>
      */
     private function dumps_panel_data(): array {
         $panel = \Tracy\Debugger::getBar()->getPanel('Tracy:dumps');
         $this->assertInstanceOf(\Tracy\DefaultBarPanel::class, $panel, 'bdump() must add a dumps panel to the bar');
 
         return $panel->data;
+    }
+
+    /**
+     * The most recently recorded dump panel entry.
+     *
+     * @param array $data
+     * phpcs:ignore moodle.Commenting.ValidTags.Invalid
+     * @phpstan-param array<int,array{title:?string,dump:string}> $data
+     * @return array{title:?string,dump:string}
+     */
+    private function last_dump(array $data): array {
+        $entry = end($data);
+        if ($entry === false) {
+            $this->fail('No dump panel entry was recorded.');
+        }
+
+        return $entry;
     }
 
     /**
@@ -57,7 +74,7 @@ final class bdump_test extends \basic_testcase {
         bdump($array);
 
         $data = $this->dumps_panel_data();
-        $html = end($data)['dump'];
+        $html = $this->last_dump($data)['dump'];
         $this->assertStringNotContainsString($secret, $html);
         $this->assertStringContainsString('dbpass', $html, 'the key name itself is not secret and should still show');
     }
@@ -82,7 +99,7 @@ final class bdump_test extends \basic_testcase {
         bdump($CFG);
 
         $data = $this->dumps_panel_data();
-        $html = end($data)['dump'];
+        $html = $this->last_dump($data)['dump'];
         $this->assertStringNotContainsString((string) $CFG->dbpass, $html);
     }
 
@@ -108,12 +125,15 @@ final class bdump_test extends \basic_testcase {
         $secret = 'super-secret-value-' . bin2hex(random_bytes(4));
         bdump_unsafe(['dbpass' => $secret], 'my title');
 
-        $data = $this->dumps_panel_data();
-        $entry = end($data);
+        $entry = $this->last_dump($this->dumps_panel_data());
+        $title = $entry['title'];
+        if ($title === null) {
+            $this->fail('Expected the dump panel entry to have a title.');
+        }
 
         $this->assertStringContainsString($secret, $entry['dump'], 'bdump_unsafe() must show the real, unmasked value');
-        $this->assertStringContainsString('UNSAFE', $entry['title']);
-        $this->assertStringContainsString('my title', $entry['title']);
+        $this->assertStringContainsString('UNSAFE', $title);
+        $this->assertStringContainsString('my title', $title);
     }
 
     /**
@@ -126,7 +146,10 @@ final class bdump_test extends \basic_testcase {
 
         bdump_unsafe('x');
 
-        $data = $this->dumps_panel_data();
-        $this->assertStringContainsString('UNSAFE', end($data)['title']);
+        $title = $this->last_dump($this->dumps_panel_data())['title'];
+        if ($title === null) {
+            $this->fail('Expected the dump panel entry to have a title.');
+        }
+        $this->assertStringContainsString('UNSAFE', $title);
     }
 }

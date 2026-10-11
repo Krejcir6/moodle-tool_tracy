@@ -37,7 +37,7 @@ final class event_log {
     /** Caps memory use on long-running/heavy scripts (CLI cron, bulk imports). */
     private const MAX_ENTRIES = 500;
 
-    /** @var array<int, array{class: string, data: array}> */
+    /** @var array<int,array{class:string,data:array<string,mixed>}> */
     private static array $entries = [];
 
     /**
@@ -59,7 +59,7 @@ final class event_log {
     /**
      * All events recorded so far this request.
      *
-     * @return array<int, array{class: string, data: array}>
+     * @return array<int,array{class:string,data:array<string,mixed>}>
      */
     public static function entries(): array {
         return self::$entries;

@@ -63,8 +63,9 @@ final class bootstrap {
     /**
      * Enables Tracy with the given mode and bootstrap options.
      *
-     * @param string|array|bool|null $mode 'development', 'production', or
-     *                                IP whitelist. A raw Tracy\Debugger bool works too.
+     * @param string|array|bool|null $mode 'development', 'production', or an IP whitelist. A raw Tracy\Debugger bool works too.
+     * phpcs:ignore moodle.Commenting.ValidTags.Invalid
+     * @phpstan-param string|array<int,string>|bool|null $mode
      * @param string|null $logdirectory Absolute path Tracy logs to, or null to disable.
      * @param bool $keephandlers Whether Tracy should remain the active exception/error handler.
      */
@@ -95,7 +96,7 @@ final class bootstrap {
 
         \Tracy\Debugger::enable($mode, $logdirectory);
 
-        if ($handlers !== null) {
+        if ($handlers !== null && $runtime !== null) {
             self::restore_handlers($handlers);
             error_reporting($runtime['error_reporting']);
             foreach (['display_errors', 'html_errors', 'log_errors', 'zend.exception_ignore_args'] as $setting) {
@@ -136,6 +137,8 @@ final class bootstrap {
      * Restores PHP handlers previously captured by capture_handlers().
      *
      * @param array $handlers Handlers as returned by capture_handlers().
+     * phpcs:ignore moodle.Commenting.ValidTags.Invalid
+     * @phpstan-param array{exception:callable|null,error:callable|null} $handlers
      */
     public static function restore_handlers(array $handlers): void {
         set_exception_handler($handlers['exception']);
@@ -226,6 +229,8 @@ final class bootstrap {
      * plugin. Panels rendering arbitrary Moodle globals ($USER, $SESSION,
      * ...) use this instead of hand-picking "safe" fields, so properties
      * added later are covered automatically too.
+     *
+     * @return array<string,mixed>
      */
     public static function scrubbed_dump_options(): array {
         if (!class_exists(\Tracy\Debugger::class, false)) {

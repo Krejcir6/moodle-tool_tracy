@@ -37,8 +37,9 @@ if (!function_exists('bdump')) {
      *
      * @param mixed $var The value to dump.
      * @param ?string $title Optional title shown above the dump.
-     * @param array $options Extra Tracy\Dumper options, merged with the
-     *                        scrubbing options this function always applies.
+     * @param array $options Extra Tracy\Dumper options, merged with the scrubbing options this function always applies.
+     * phpcs:ignore moodle.Commenting.ValidTags.Invalid
+     * @phpstan-param array<string,mixed> $options
      * @return mixed $var, unchanged.
      * phpcs:ignore moodle.Commenting.ValidTags.Invalid
      * @tracySkipLocation
@@ -60,6 +61,8 @@ if (!function_exists('bdump_unsafe')) {
      * @param mixed $var The value to dump, unmasked.
      * @param ?string $title Optional title, always prefixed with "UNSAFE".
      * @param array $options Extra Tracy\Dumper options, applied as-is.
+     * phpcs:ignore moodle.Commenting.ValidTags.Invalid
+     * @phpstan-param array<string,mixed> $options
      * @return mixed $var, unchanged.
      * phpcs:ignore moodle.Commenting.ValidTags.Invalid
      * @tracySkipLocation

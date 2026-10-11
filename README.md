@@ -186,7 +186,12 @@ call (a no-op if nothing is open).
 2. Tracy itself is vendored under `thirdparty/tracy/` (pinned version in
    `thirdparty/tracy/VERSION.txt`) rather than pulled in via Composer at
    runtime, per Moodle's third-party library policy — see
-   `thirdpartylibs.xml`.
+   `thirdpartylibs.xml`. Pinned deliberately at **2.10.10**, not neglect:
+   it's the last Tracy release supporting PHP 8.0-8.4. Tracy 2.11.0 raised
+   its own floor to PHP 8.2, which would silently drop support for Moodle
+   4.5 running on PHP 8.1 — a combination this plugin's `version.php`
+   explicitly still supports. Re-evaluate this pin if that PHP 8.1 floor
+   is ever dropped.
 
 3. Visit the site — the debug bar should appear in the corner.
 
@@ -381,9 +386,13 @@ it up from the file alone.
 composer install   # once, installs phpstan/phpstan as a dev dependency
                     # (via Docker: docker run --rm -v "$PWD:/app" -w /app composer:2 install)
 
-# from the Moodle root, with this plugin at the usual admin/tool/tracy path:
+# Moodle 4.5-5.0 (classic layout), from the Moodle root:
 php admin/tool/tracy/vendor/bin/phpstan analyse --memory-limit=1G \
     -c admin/tool/tracy/phpstan.neon
+
+# Moodle 5.1+ (public/ layout) — note the different config AND working directory:
+cd public && php admin/tool/tracy/vendor/bin/phpstan analyse --memory-limit=1G \
+    -c admin/tool/tracy/phpstan-public.neon
 ```
 
 Has to run from a real Moodle checkout (`%currentWorkingDirectory%/lib` and
@@ -397,6 +406,21 @@ both — didn't make PHPStan aware of `Tracy\Debugger`/`Tracy\Dumper`/
 `Tracy\IBarPanel` the way `scanDirectories` did for Moodle's own `lib/`).
 `--memory-limit=1G`: scanning all of `lib/` needs more than PHP's 128M
 default.
+
+**Two configs, one real incompatibility.** On Moodle 5.1+, `lib/` and
+`privacy/` move under `public/`, but `vendor/` (Composer's own dependencies,
+including PHPUnit — needed to resolve `tests/*.php`'s `basic_testcase`/
+`advanced_testcase` base classes) stays at the Moodle root. No single
+`%currentWorkingDirectory%` satisfies both at once: running from the Moodle
+root finds `vendor/` but not `lib/`/`privacy/`; running from `public/` finds
+those but not `vendor/`. `phpstan-public.neon` resolves this by adding
+`%currentWorkingDirectory%/../vendor/autoload.php` as an extra
+`bootstrapFiles` entry when run from inside `public/` — confirmed live
+against a real Moodle 5.1 checkout (without it, `tests/*.php`'s PHPUnit
+assertion calls come back as 129 spurious "undefined method" errors).
+Classic-layout runs get PHPUnit's autoloader for free, since PHPStan
+auto-discovers `vendor/autoload.php` when it sits directly in the current
+working directory — which, pre-5.1, it does.
 
 ## Coding style
 

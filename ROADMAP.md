@@ -179,7 +179,7 @@ Moodle development, not just crash reporting.
 
 ## Tooling
 
-- [x] **PHPStan** (`phpstan.neon`, level 5, `composer.json`/dev-only). Has
+- [x] **PHPStan** (`phpstan.neon`, level `max`, `composer.json`/dev-only). Has
       to run from within a real Moodle checkout — `scanDirectories` points
       at the surrounding install's `lib/`/`privacy` for Moodle core
       symbols (`moodle_database`, `context`, the event system, PHPUnit
@@ -193,6 +193,20 @@ Moodle development, not just crash reporting.
       bug: `admin_setting_configcheckbox`'s `$defaultsetting` is
       documented `string`, `settings.php` was passing `1`/`0` (int).
       `[OK] No errors` after fixes — see README.md's "Static analysis".
+      Moodle 5.1+'s `public/` layout needs a second config,
+      `phpstan-public.neon`: `lib/`/`privacy/` move under `public/`, but
+      `vendor/` (PHPUnit, which `tests/*.php`'s base classes need) stays
+      at the Moodle root — no single `%currentWorkingDirectory%` covers
+      both, confirmed live against a real Moodle 5.1 `public/` checkout
+      (129 spurious "undefined method" errors on `tests/*.php` without
+      the fix). Bumped from level 5 to `max` (currently 9): fixed the
+      real findings (missing generic array value types throughout,
+      unnecessary `method_exists()` guards on three `moodle_database`
+      methods that are unconditionally defined, a `getmypid()`
+      `int|false` case, and several tests indexing into a possibly-empty
+      `end()`/possibly-`mixed` result without narrowing first) rather
+      than suppressing them — `[OK] No errors` on both layouts, confirmed
+      with a cleared result cache across repeated runs.
 
 ## Planned
 
@@ -213,3 +227,40 @@ Moodle development, not just crash reporting.
 - Trusted proxy and advanced IP allowlist handling beyond Moodle's
   `getremoteaddr()` configuration.
 - Controlled Tracy file logging with retention and privacy management.
+
+## Maturity graduation criteria
+
+For a dev-only tool, "stable" never means "safe for production" - staying
+disabled in production is a permanent design constraint, not something
+maturity changes. These gates are about how much the *implementation*
+itself can be trusted, not about where it's allowed to run.
+
+### Alpha → beta
+
+- [ ] All five panels (Routing/User/Session/Database/Events) + bluescreen
+      + both activation paths work with no known bug - CI green across
+      the whole supported Moodle/PHP/DB matrix.
+- [x] PHPStan level 9 clean (now `max`, see "Tooling" above).
+- [ ] Every item under "Known limitations" above is either fixed or
+      explicitly reclassified as a permanent design constraint (not left
+      as "still unfinished"). Trusted proxy handling, for example, is
+      likely to stay out of scope forever - that has to be a decision,
+      not a gap.
+- [ ] No open P1/security issue on the tracker for a stretch of real,
+      day-to-day use on an actual Moodle project (no fixed timebox - long
+      enough that nothing's surprised me recently).
+- [ ] The "Planned" custom-panels hook stays *outside* this gate - it's
+      new functionality, not hardening of what exists, and can land
+      after beta.
+
+### Beta → stable (final)
+
+- [ ] 2-3 calendar months in beta with no regression (not just a usage
+      count - real time passing without a surprise).
+- [ ] Verified on real projects/installs, not just CI - which ones and
+      how many is a judgment call at the time, not a fixed number.
+- [ ] From stable onward: no breaking change without a major version
+      bump - the point of "stable" is that it's safe to rely on this in
+      daily workflow without re-checking behaviour on every update.
+- [ ] README/landing page/FAQ describe final behaviour - no leftover
+      "experimental" wording that isn't actually still experimental.

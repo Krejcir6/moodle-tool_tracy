@@ -53,14 +53,8 @@ final class database_panel implements \Tracy\IBarPanel {
     public function getTab(): string { // phpcs:ignore moodle.NamingConventions.ValidFunctionName.LowercaseMethod
         global $DB;
 
-        $reads = method_exists($DB, 'perf_get_reads') ? $DB->perf_get_reads() : null;
-        $writes = method_exists($DB, 'perf_get_writes') ? $DB->perf_get_writes() : null;
-        $time = method_exists($DB, 'perf_get_queries_time') ? $DB->perf_get_queries_time() : null;
-
-        $label = get_string('db_tab', 'tool_tracy', (int) $reads + (int) $writes);
-        if ($time !== null) {
-            $label .= sprintf(' (%.1f ms)', $time * 1000);
-        }
+        $label = get_string('db_tab', 'tool_tracy', $DB->perf_get_reads() + $DB->perf_get_writes());
+        $label .= sprintf(' (%.1f ms)', $DB->perf_get_queries_time() * 1000);
 
         $warn = $this->has_warnings();
         $color = $warn ? '#c00' : '#6ba9e6';
@@ -84,12 +78,10 @@ final class database_panel implements \Tracy\IBarPanel {
         global $DB;
 
         $rows = [
-            get_string('db_reads', 'tool_tracy') => method_exists($DB, 'perf_get_reads') ? $DB->perf_get_reads() : null,
+            get_string('db_reads', 'tool_tracy') => $DB->perf_get_reads(),
             get_string('db_reads_replica', 'tool_tracy') => $this->reads_replica($DB),
-            get_string('db_writes', 'tool_tracy') => method_exists($DB, 'perf_get_writes') ? $DB->perf_get_writes() : null,
-            get_string('db_totaltime', 'tool_tracy') => method_exists($DB, 'perf_get_queries_time')
-                ? sprintf('%.2f ms', $DB->perf_get_queries_time() * 1000)
-                : null,
+            get_string('db_writes', 'tool_tracy') => $DB->perf_get_writes(),
+            get_string('db_totaltime', 'tool_tracy') => sprintf('%.2f ms', $DB->perf_get_queries_time() * 1000),
         ];
 
         $html = '<h1>' . htmlspecialchars(get_string('db_title', 'tool_tracy'), ENT_QUOTES) . '</h1>'
@@ -176,7 +168,9 @@ final class database_panel implements \Tracy\IBarPanel {
      * that matters for N+1, since one occurrence alone can look harmless.
      *
      * @param array $entries The request's logged query entries, as returned by query_log::entries().
-     * @return array<string, array{count: int, time: float}> Duplicates, keyed by SQL text.
+     * phpcs:ignore moodle.Commenting.ValidTags.Invalid
+     * @phpstan-param array<int,array{sql:?string,time:float,error:mixed}> $entries
+     * @return array<string,array{count:int,time:float}> Duplicates, keyed by SQL text.
      */
     private function duplicate_summary(array $entries): array {
         $groups = [];

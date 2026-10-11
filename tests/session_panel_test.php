@@ -41,7 +41,7 @@ final class session_panel_test extends \basic_testcase {
         $id = session_id();
         $html = (new session_panel())->getPanel();
 
-        if ($id !== '') {
+        if ($id !== '' && $id !== false) {
             $this->assertStringNotContainsString($id, $html);
         }
     }

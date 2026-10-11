@@ -38,7 +38,7 @@ final class query_log_test extends \basic_testcase {
      * Finds a recorded entry by its exact SQL text.
      *
      * @param string $sql The exact SQL text to look for.
-     * @return ?array The matching entry, or null if none was found.
+     * @return ?array{sql:?string,time:float,error:mixed} The matching entry, or null if none was found.
      */
     private function find(string $sql): ?array {
         foreach (query_log::entries() as $entry) {
@@ -75,7 +75,11 @@ final class query_log_test extends \basic_testcase {
 
         query_log::add($marker, 0.01, 'some db error');
 
-        $this->assertSame('some db error', $this->find($marker)['error']);
+        $entry = $this->find($marker);
+        if ($entry === null) {
+            $this->fail("No entry recorded for marker: {$marker}");
+        }
+        $this->assertSame('some db error', $entry['error']);
     }
 
     /**

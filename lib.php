@@ -24,6 +24,8 @@
 
 /**
  * Declares the activation-mode Check API report.
+ *
+ * @return array<int,\tool_tracy\check\activation>
  */
 function tool_tracy_security_checks(): array {
     return [new \tool_tracy\check\activation()];
@@ -79,7 +81,8 @@ function tool_tracy_after_config(): void {
                 return;
             }
         }
-        $activationips = trim((string) get_config('tool_tracy', 'activationips'));
+        $activationips = get_config('tool_tracy', 'activationips');
+        $activationips = trim(is_string($activationips) ? $activationips : '');
         $tracymode = tool_tracy_client_ip_is_allowed($activationips) ? 'development' : 'production';
 
         \tool_tracy\bootstrap::enable($tracymode, null, $tracyhandlers);

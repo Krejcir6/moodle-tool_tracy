@@ -25,7 +25,7 @@ namespace tool_tracy;
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 final class activation_test extends \advanced_testcase {
-    /** @var array Snapshot of $_SERVER, restored in tearDown(). */
+    /** @var array<string,mixed> Snapshot of $_SERVER, restored in tearDown(). */
     private array $server;
 
     /** @var mixed Snapshot of $CFG->getremoteaddrconf, restored in tearDown(). */
@@ -72,6 +72,8 @@ final class activation_test extends \advanced_testcase {
 
     /**
      * Data provider for test_ip_allowlist().
+     *
+     * @return array<string,array{string,string,bool}>
      */
     public static function ip_allowlist_provider(): array {
         return [

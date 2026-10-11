@@ -67,6 +67,8 @@ final class bootstrap_test extends \basic_testcase {
 
     /**
      * Data provider for test_enable_maps_mode_string_to_debugger_productionmode().
+     *
+     * @return array<string,array{string|bool,bool}>
      */
     public static function mode_provider(): array {
         return [
@@ -232,6 +234,9 @@ final class bootstrap_test extends \basic_testcase {
         $CFG->tracy_test_late_marker = 'should-not-leak';
 
         $scrubberbefore = \Tracy\Debugger::getBlueScreen()->scrubber;
+        if (!is_callable($scrubberbefore)) {
+            $this->fail('Expected the BlueScreen scrubber to be callable.');
+        }
         $this->assertFalse(
             $scrubberbefore('tracy_test_late_marker', 'x'),
             'sanity check: enable() could not have known about a key added after it ran'
@@ -240,6 +245,9 @@ final class bootstrap_test extends \basic_testcase {
         bootstrap::refresh_cfg_scrubbing();
 
         $scrubberafter = \Tracy\Debugger::getBlueScreen()->scrubber;
+        if (!is_callable($scrubberafter)) {
+            $this->fail('Expected the BlueScreen scrubber to be callable.');
+        }
         $this->assertTrue(
             $scrubberafter('tracy_test_late_marker', 'x'),
             'a $CFG key that only existed after enable() ran must be covered once refreshed'
