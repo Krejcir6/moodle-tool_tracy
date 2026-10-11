@@ -40,6 +40,10 @@ final class query_log {
 
     /**
      * Records one query entry, dropping it once MAX_ENTRIES is reached.
+     *
+     * @param ?string $sql The query's SQL text, or null if unavailable.
+     * @param float $time The query's execution time, in seconds.
+     * @param mixed $error The query's error status, or false if it succeeded.
      */
     public static function add(?string $sql, float $time, mixed $error = false): void {
         if (count(self::$entries) >= self::MAX_ENTRIES) {

@@ -33,6 +33,9 @@ use core_privacy\local\metadata\provider as metadata_provider;
 class provider implements metadata_provider {
     /**
      * Declares the external location link for Tracy's own log directory.
+     *
+     * @param collection $collection The collection to add metadata to.
+     * @return collection $collection, with the metadata added.
      */
     public static function get_metadata(collection $collection): collection {
         $collection->add_external_location_link(

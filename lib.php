@@ -32,6 +32,8 @@ function tool_tracy_security_checks(): array {
 /**
  * Records the current deployment (wwwroot) whenever activation mode changes,
  * so a later request on a different wwwroot can detect the mismatch.
+ *
+ * @param string $fullname The updated setting's full name (unused).
  */
 function tool_tracy_activationmode_updated(string $fullname): void {
     global $CFG, $DB;
@@ -110,6 +112,9 @@ function tool_tracy_after_config(): void {
 
 /**
  * Whether the current client IP is covered by the activation IP allowlist.
+ *
+ * @param string $activationips The allowlist, as configured.
+ * @return bool true if the allowlist is empty or the client IP is in it.
  */
 function tool_tracy_client_ip_is_allowed(string $activationips): bool {
     return $activationips === '' || remoteip_in_list($activationips);
@@ -118,6 +123,9 @@ function tool_tracy_client_ip_is_allowed(string $activationips): bool {
 /**
  * Normalizes a wwwroot to scheme://host[:port][/path], lower-cased, so
  * deployment comparisons ignore a trailing slash or host case.
+ *
+ * @param string $root The wwwroot to normalize.
+ * @return string $root, normalized, or '' if it has no host.
  */
 function tool_tracy_normalize_root(string $root): string {
     $parts = parse_url(rtrim($root, '/'));
@@ -132,6 +140,9 @@ function tool_tracy_normalize_root(string $root): string {
 
 /**
  * Whether the given wwwroot matches the deployment Tracy was activated on.
+ *
+ * @param string $wwwroot The wwwroot to check.
+ * @return bool true if it matches the recorded deployment.
  */
 function tool_tracy_deployment_matches(string $wwwroot): bool {
     global $DB;
@@ -145,6 +156,9 @@ function tool_tracy_deployment_matches(string $wwwroot): bool {
  * Turns activation off if the current wwwroot no longer matches the
  * recorded deployment, so a copied database doesn't silently carry an
  * active debugger to a different site URL.
+ *
+ * @param string $wwwroot The current wwwroot.
+ * @return bool true if activation was turned off.
  */
 function tool_tracy_disable_if_deployment_mismatch(string $wwwroot): bool {
     if (tool_tracy_deployment_matches($wwwroot)) {

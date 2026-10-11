@@ -43,14 +43,14 @@ final class reclaim_handlers_test extends \advanced_testcase {
     }
 
     public function test_is_a_harmless_noop_without_an_open_transaction(): void {
-        // Guards against the DB-level transaction state the previous test's
-        // force-aborted $transaction can otherwise leave behind once its
-        // own (now-defunct) destructor runs — resetAfterTest() clears that,
-        // the same way the previous test already resets after itself.
-        $this->resetAfterTest();
-
         global $DB;
 
+        // Guarantees the "nothing open" precondition itself, using the same
+        // function under test: the previous test's force-aborted
+        // $transaction can otherwise leave the DB layer thinking one is
+        // still open once its (now-defunct) destructor eventually runs, at
+        // a point this test has no control over.
+        bootstrap::abort_open_transactions();
         $this->assertFalse($DB->is_transaction_started());
 
         bootstrap::abort_open_transactions();

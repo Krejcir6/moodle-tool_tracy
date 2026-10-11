@@ -49,6 +49,7 @@ final class scrubber {
     /**
      * Builds the callable Tracy\BlueScreen::$scrubber expects.
      *
+     * @param string $level One of self::LEVEL_STRICT or self::LEVEL_MODERATE.
      * @param string[] $extraexactkeys Hidden unconditionally regardless of
      *                                  $level/pattern — bootstrap::enable()
      *                                  passes every real $CFG key here.
@@ -67,6 +68,7 @@ final class scrubber {
     /**
      * Literal (exact-match) key names for Debugger::$keysToHide.
      *
+     * @param string $level One of self::LEVEL_STRICT or self::LEVEL_MODERATE.
      * @param string[] $extraexactkeys See for_level().
      * @return string[] Literal (exact-match) key names for Debugger::$keysToHide.
      */
@@ -91,8 +93,9 @@ final class scrubber {
     /**
      * Recursively masks sensitive keys in request-style arrays.
      *
-     * @param array<mixed> $values
-     * @return array<mixed>
+     * @param array<mixed> $values The array to scrub, recursively.
+     * @param string $level One of self::LEVEL_STRICT or self::LEVEL_MODERATE.
+     * @return array<mixed> $values, with sensitive-looking values masked.
      */
     public static function scrub_array(array $values, string $level = self::LEVEL_STRICT): array {
         $scrub = self::for_level($level);
@@ -113,8 +116,8 @@ final class scrubber {
      * handled fail-closed because its field names and contents are defined by
      * arbitrary components rather than the Events API.
      *
-     * @param array<mixed> $data
-     * @return array<mixed>
+     * @param array<mixed> $data The event's "other" payload and friends.
+     * @return array<mixed> $data, with sensitive-looking values masked.
      */
     public static function scrub_event_data(array $data): array {
         if (array_key_exists('other', $data)) {
@@ -126,6 +129,10 @@ final class scrubber {
 
     /**
      * Recursively scrubs an event's "other" payload, fail-closed.
+     *
+     * @param mixed $value The value to scrub, recursively if it is an array
+     *                      or a JSON-encoded array.
+     * @return mixed $value, with sensitive-looking values masked.
      */
     private static function scrub_event_other(mixed $value): mixed {
         if (is_array($value)) {
@@ -153,6 +160,9 @@ final class scrubber {
 
     /**
      * Regex pattern matching sensitive-looking key names for the given level.
+     *
+     * @param string $level One of self::LEVEL_STRICT or self::LEVEL_MODERATE.
+     * @return string A regex pattern, for use with preg_match().
      */
     private static function pattern(string $level): string {
         if ($level === self::LEVEL_MODERATE) {

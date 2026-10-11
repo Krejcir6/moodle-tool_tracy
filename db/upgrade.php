@@ -24,6 +24,9 @@
 
 /**
  * Runs the upgrade steps needed to reach the plugin's current version.
+ *
+ * @param int $oldversion The version being upgraded from.
+ * @return bool true on success.
  */
 function xmldb_tool_tracy_upgrade(int $oldversion): bool {
     global $CFG, $DB;
@@ -55,6 +58,9 @@ function xmldb_tool_tracy_upgrade(int $oldversion): bool {
 
 /**
  * Normalizes a wwwroot to scheme://host[:port][/path], lower-cased.
+ *
+ * @param string $root The wwwroot to normalize.
+ * @return string $root, normalized, or '' if it has no host.
  */
 function tool_tracy_upgrade_normalize_root(string $root): string {
     $parts = parse_url(rtrim($root, '/'));

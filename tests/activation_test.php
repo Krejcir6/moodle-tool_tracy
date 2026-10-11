@@ -58,6 +58,9 @@ final class activation_test extends \advanced_testcase {
     /**
      * tool_tracy_client_ip_is_allowed() must match single IPs and subnets.
      *
+     * @param string $clientip The simulated $_SERVER['REMOTE_ADDR'].
+     * @param string $allowlist The allowlist to check against.
+     * @param bool $expected The expected result.
      * @dataProvider ip_allowlist_provider
      */
     public function test_ip_allowlist(string $clientip, string $allowlist, bool $expected): void {

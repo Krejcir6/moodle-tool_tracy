@@ -158,6 +158,9 @@ final class database_panel implements \Tracy\IBarPanel {
     /**
      * Moodle 5.1 renamed perf_get_reads_slave() to perf_get_reads_replica()
      * and deprecated the old name.
+     *
+     * @param \moodle_database $db The current database connection.
+     * @return ?int The replica read count, or null if neither method exists.
      */
     private function reads_replica(\moodle_database $db): ?int {
         return match (true) {
@@ -173,7 +176,8 @@ final class database_panel implements \Tracy\IBarPanel {
      * that matters for N+1, since one occurrence alone can look harmless.
      *
      * @param array<int, array{sql: ?string, time: float, error: mixed}> $entries
-     * @return array<string, array{count: int, time: float}>
+     *                                                                     The request's logged query entries.
+     * @return array<string, array{count: int, time: float}> Duplicates, keyed by SQL text.
      */
     private function duplicate_summary(array $entries): array {
         $groups = [];
@@ -215,6 +219,11 @@ final class database_panel implements \Tracy\IBarPanel {
 
     /**
      * Row background colour for a given query time/repeat count.
+     *
+     * @param float $timems The query's time, in milliseconds.
+     * @param int $count The query's repeat count.
+     * @return string A CSS "background:#hex" declaration, or '' if neither
+     *                 threshold is met.
      */
     private function style(float $timems, int $count): string {
         if ($timems >= self::SLOW_MS) {

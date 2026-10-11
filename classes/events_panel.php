@@ -95,7 +95,8 @@ final class events_panel implements \Tracy\IBarPanel {
      * walking its parent-class hierarchy (a '*' registration becomes
      * \core\event\base internally).
      *
-     * @return array<int, \stdClass>
+     * @param string $eventclass Fully-qualified event class name.
+     * @return array<int, \stdClass> The observers Moodle would invoke.
      */
     private function observers_for(string $eventclass): array {
         $hierarchy = ['\\' . ltrim($eventclass, '\\')];
@@ -120,7 +121,8 @@ final class events_panel implements \Tracy\IBarPanel {
     /**
      * Renders an event's observers as an HTML table.
      *
-     * @param array<int, \stdClass> $observers
+     * @param array<int, \stdClass> $observers The observers to render.
+     * @return string The rendered HTML table.
      */
     private function render_observers(array $observers): string {
         if ($observers === []) {

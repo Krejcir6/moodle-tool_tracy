@@ -32,6 +32,7 @@ final class scrubber_test extends \basic_testcase {
     /**
      * Strict level must flag every known sensitive-looking key name.
      *
+     * @param string $key The key name to check.
      * @dataProvider strict_sensitive_key_provider
      */
     public function test_strict_level_hides_sensitive_looking_keys(string $key): void {
@@ -62,6 +63,7 @@ final class scrubber_test extends \basic_testcase {
     /**
      * Strict level must leave ordinary, non-sensitive key names alone.
      *
+     * @param string $key The key name to check.
      * @dataProvider strict_safe_key_provider
      */
     public function test_strict_level_leaves_ordinary_keys_alone(string $key): void {

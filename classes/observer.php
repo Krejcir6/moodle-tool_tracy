@@ -34,6 +34,8 @@ namespace tool_tracy;
 final class observer {
     /**
      * Records the event into event_log, if Tracy is enabled.
+     *
+     * @param \core\event\base $event The triggered event.
      */
     public static function event_triggered(\core\event\base $event): void {
         if (!class_exists(\Tracy\Debugger::class, false)) {

@@ -50,6 +50,8 @@ final class bootstrap_test extends \basic_testcase {
      * enable() must map each accepted $mode value to the right Tracy
      * productionMode.
      *
+     * @param string|bool|null $mode The mode value to pass to enable().
+     * @param bool $expectedproductionmode The expected resulting productionMode.
      * @runInSeparateProcess
      * @dataProvider mode_provider
      */

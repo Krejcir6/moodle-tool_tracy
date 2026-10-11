@@ -36,6 +36,9 @@ function xmldb_tool_tracy_install(): void {
 
 /**
  * Normalizes a wwwroot to scheme://host[:port][/path], lower-cased.
+ *
+ * @param string $root The wwwroot to normalize.
+ * @return string $root, normalized, or '' if it has no host.
  */
 function tool_tracy_install_normalize_root(string $root): string {
     $parts = parse_url(rtrim($root, '/'));

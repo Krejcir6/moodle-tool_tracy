@@ -35,6 +35,11 @@ if (!function_exists('bdump')) {
     /**
      * Mirrors Tracy's global bdump(), but scrubbed like dump()/the bluescreen.
      *
+     * @param mixed $var The value to dump.
+     * @param ?string $title Optional title shown above the dump.
+     * @param array $options Extra Tracy\Dumper options, merged with the
+     *                        scrubbing options this function always applies.
+     * @return mixed $var, unchanged.
      * phpcs:ignore moodle.Commenting.ValidTags.Invalid
      * @tracySkipLocation
      */
@@ -52,6 +57,10 @@ if (!function_exists('bdump_unsafe')) {
      * a `bdump($x, unsafe: true)` flag) and the forced "UNSAFE" title
      * prefix are both there so this is never reached by accident.
      *
+     * @param mixed $var The value to dump, unmasked.
+     * @param ?string $title Optional title, always prefixed with "UNSAFE".
+     * @param array $options Extra Tracy\Dumper options, applied as-is.
+     * @return mixed $var, unchanged.
      * phpcs:ignore moodle.Commenting.ValidTags.Invalid
      * @tracySkipLocation
      */

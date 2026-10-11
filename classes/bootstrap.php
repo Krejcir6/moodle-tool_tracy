@@ -136,6 +136,7 @@ final class bootstrap {
      * Restores PHP handlers previously captured by capture_handlers().
      *
      * @param array{exception: callable|null, error: callable|null} $handlers
+     *                                                                 Handlers as returned by capture_handlers().
      */
     public static function restore_handlers(array $handlers): void {
         set_exception_handler($handlers['exception']);

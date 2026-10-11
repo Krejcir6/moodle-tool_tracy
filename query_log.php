@@ -39,6 +39,10 @@ if (!function_exists('tool_tracy_log_query')) {
     /**
      * Records one query into \tool_tracy\query_log, called from the
      * optional core patch. See the file docblock above.
+     *
+     * @param ?string $sql The query's SQL text, or null if unavailable.
+     * @param float $time The query's execution time, in seconds.
+     * @param mixed $error The query's error status, or false if it succeeded.
      */
     function tool_tracy_log_query(?string $sql, float $time, mixed $error = false): void {
         \tool_tracy\query_log::add($sql, $time, $error);

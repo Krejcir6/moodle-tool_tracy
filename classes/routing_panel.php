@@ -115,6 +115,9 @@ final class routing_panel implements \Tracy\IBarPanel {
 
     /**
      * Truncates a long path for the tab label.
+     *
+     * @param string $path The path to shorten.
+     * @return string $path, truncated to 60 characters if longer.
      */
     private function shorten(string $path): string {
         return strlen($path) > 60 ? substr($path, 0, 57) . '…' : $path;

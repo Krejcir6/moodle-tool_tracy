@@ -42,6 +42,8 @@ final class event_log {
 
     /**
      * Records one triggered event, dropping it once MAX_ENTRIES is reached.
+     *
+     * @param \core\event\base $event The triggered event.
      */
     public static function add(\core\event\base $event): void {
         if (count(self::$entries) >= self::MAX_ENTRIES) {

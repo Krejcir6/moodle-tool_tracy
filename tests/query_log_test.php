@@ -36,6 +36,9 @@ final class query_log_test extends \basic_testcase {
 
     /**
      * Finds a recorded entry by its exact SQL text.
+     *
+     * @param string $sql The exact SQL text to look for.
+     * @return ?array The matching entry, or null if none was found.
      */
     private function find(string $sql): ?array {
         foreach (query_log::entries() as $entry) {
