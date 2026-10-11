@@ -43,6 +43,13 @@ final class reclaim_handlers_test extends \advanced_testcase {
     }
 
     public function test_is_a_harmless_noop_without_an_open_transaction(): void {
+        // Lets advanced_testcase know this test may leave the DB layer's
+        // transaction bookkeeping in a non-standard state, same as the
+        // previous test — without it, its own end-of-test consistency
+        // check throws a coding_exception instead of a plain assertion
+        // failure once the precondition below forces a second abort.
+        $this->resetAfterTest();
+
         global $DB;
 
         // Guarantees the "nothing open" precondition itself, using the same

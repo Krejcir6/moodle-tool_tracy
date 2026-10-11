@@ -175,8 +175,7 @@ final class database_panel implements \Tracy\IBarPanel {
      * self::FREQUENT_THRESHOLD+ times, with combined time — the number
      * that matters for N+1, since one occurrence alone can look harmless.
      *
-     * @param array<int, array{sql: ?string, time: float, error: mixed}> $entries
-     *                                                                     The request's logged query entries.
+     * @param array $entries The request's logged query entries, as returned by query_log::entries().
      * @return array<string, array{count: int, time: float}> Duplicates, keyed by SQL text.
      */
     private function duplicate_summary(array $entries): array {

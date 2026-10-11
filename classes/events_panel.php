@@ -121,7 +121,7 @@ final class events_panel implements \Tracy\IBarPanel {
     /**
      * Renders an event's observers as an HTML table.
      *
-     * @param array<int, \stdClass> $observers The observers to render.
+     * @param array $observers The observers to render, as \stdClass objects.
      * @return string The rendered HTML table.
      */
     private function render_observers(array $observers): string {
