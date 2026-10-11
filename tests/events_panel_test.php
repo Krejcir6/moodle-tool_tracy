@@ -19,11 +19,12 @@ namespace tool_tracy;
 /**
  * Tests for \tool_tracy\events_panel.
  *
+ * @covers \tool_tracy\events_panel
  * @package    tool_tracy
  * @copyright  2026 Radek Krejci
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
-class events_panel_test extends \advanced_testcase {
+final class events_panel_test extends \advanced_testcase {
     public function test_gettab_contains_svg_icon(): void {
         bootstrap::enable('development');
         $this->assertStringContainsString('<svg', (new events_panel())->getTab());

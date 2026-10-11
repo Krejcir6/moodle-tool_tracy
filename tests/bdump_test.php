@@ -22,11 +22,13 @@ namespace tool_tracy;
  * Regression coverage: unpatched bdump($CFG) rendered $CFG->dbpass in
  * plain text — see bdump.php.
  *
+ * @covers ::bdump
+ * @covers ::bdump_unsafe
  * @package    tool_tracy
  * @copyright  2026 Radek Krejci
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
-class bdump_test extends \basic_testcase {
+final class bdump_test extends \basic_testcase {
     /**
      * Reads back the Tracy bar's "Tracy:dumps" panel data, as populated by
      * bdump()/bdump_unsafe().

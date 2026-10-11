@@ -21,11 +21,12 @@ namespace tool_tracy;
  *
  * Uses unique marker SQL strings, same reasoning as query_log_test.php.
  *
+ * @covers \tool_tracy\database_panel
  * @package    tool_tracy
  * @copyright  2026 Radek Krejci
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
-class database_panel_test extends \basic_testcase {
+final class database_panel_test extends \basic_testcase {
     public function test_gettab_contains_svg_icon(): void {
         bootstrap::enable('development');
         $this->assertStringContainsString('<svg', (new database_panel())->getTab());

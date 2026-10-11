@@ -20,11 +20,16 @@ namespace tool_tracy;
  * Tests for the deployment-mismatch guard: normalize_root(), the
  * deployment record, and the activation Check API report.
  *
+ * @covers ::tool_tracy_normalize_root
+ * @covers ::tool_tracy_deployment_matches
+ * @covers ::tool_tracy_disable_if_deployment_mismatch
+ * @covers ::tool_tracy_activationmode_updated
+ * @covers \tool_tracy\check\activation
  * @package    tool_tracy
  * @copyright  2026 Radek Krejci
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
-class deployment_test extends \advanced_testcase {
+final class deployment_test extends \advanced_testcase {
     public function test_normalize_root_ignores_trailing_slash_and_host_case(): void {
         $this->assertSame(
             'https://example.test/moodle',

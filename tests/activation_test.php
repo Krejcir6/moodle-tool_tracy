@@ -19,11 +19,12 @@ namespace tool_tracy;
 /**
  * Tests for standard activation restrictions.
  *
+ * @covers ::tool_tracy_client_ip_is_allowed
  * @package    tool_tracy
  * @copyright  2026 Radek Krejci
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
-class activation_test extends \advanced_testcase {
+final class activation_test extends \advanced_testcase {
     /** @var array Snapshot of $_SERVER, restored in tearDown(). */
     private array $server;
 

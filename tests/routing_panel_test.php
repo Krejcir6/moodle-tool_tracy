@@ -19,11 +19,12 @@ namespace tool_tracy;
 /**
  * Tests for \tool_tracy\routing_panel.
  *
+ * @covers \tool_tracy\routing_panel
  * @package    tool_tracy
  * @copyright  2026 Radek Krejci
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
-class routing_panel_test extends \basic_testcase {
+final class routing_panel_test extends \basic_testcase {
     /** @var ?array Snapshot of $_SERVER, restored in tearDown(). */
     private ?array $server;
 

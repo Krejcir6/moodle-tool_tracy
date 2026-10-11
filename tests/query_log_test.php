@@ -23,11 +23,12 @@ namespace tool_tracy;
  * shape/count: this site's own config.php feeds real bootstrap queries
  * through the same static state.
  *
+ * @covers \tool_tracy\query_log
  * @package    tool_tracy
  * @copyright  2026 Radek Krejci
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
-class query_log_test extends \basic_testcase {
+final class query_log_test extends \basic_testcase {
     protected function setUp(): void {
         parent::setUp();
         query_log::clear();

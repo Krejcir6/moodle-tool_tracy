@@ -23,11 +23,12 @@ namespace tool_tracy;
  * returns false under PHPUnit's CLI SAPI) — see tests/ajax_smoke.sh for that.
  * What's testable here is our narrower PHP_SAPI check in enable().
  *
+ * @covers \tool_tracy\bootstrap
  * @package    tool_tracy
  * @copyright  2026 Radek Krejci
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
-class bootstrap_test extends \basic_testcase {
+final class bootstrap_test extends \basic_testcase {
     /**
      * enable() must never turn the debug bar on for CLI/cron scripts, since
      * there is no browser to render it in and nothing should be injected

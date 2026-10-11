@@ -23,11 +23,12 @@ namespace tool_tracy;
  * keys_to_hide() just return a closure/array, so no @runInSeparateProcess
  * needed here (unlike bootstrap_test.php).
  *
+ * @covers \tool_tracy\scrubber
  * @package    tool_tracy
  * @copyright  2026 Radek Krejci
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
-class scrubber_test extends \basic_testcase {
+final class scrubber_test extends \basic_testcase {
     /**
      * Strict level must flag every known sensitive-looking key name.
      *

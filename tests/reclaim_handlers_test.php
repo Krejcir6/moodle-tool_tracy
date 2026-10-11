@@ -22,11 +22,12 @@ namespace tool_tracy;
  * Separate file from bootstrap_test.php: needs a real $DB transaction, so
  * \advanced_testcase, unlike the rest of that file's \basic_testcase.
  *
+ * @covers \tool_tracy\bootstrap::abort_open_transactions
  * @package    tool_tracy
  * @copyright  2026 Radek Krejci
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
-class reclaim_handlers_test extends \advanced_testcase {
+final class reclaim_handlers_test extends \advanced_testcase {
     public function test_aborts_a_genuinely_open_transaction(): void {
         $this->resetAfterTest();
         global $DB;

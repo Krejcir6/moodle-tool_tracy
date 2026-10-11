@@ -19,11 +19,13 @@ namespace tool_tracy;
 /**
  * Tests for \tool_tracy\event_log and \tool_tracy\observer.
  *
+ * @covers \tool_tracy\event_log
+ * @covers \tool_tracy\observer
  * @package    tool_tracy
  * @copyright  2026 Radek Krejci
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
-class event_log_test extends \advanced_testcase {
+final class event_log_test extends \advanced_testcase {
     /**
      * observer::event_triggered() must stay a no-op until Tracy is enabled.
      *

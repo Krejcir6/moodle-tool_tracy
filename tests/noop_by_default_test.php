@@ -35,11 +35,14 @@ namespace tool_tracy;
  * was instead verified manually, once, against a real request with the
  * low-level config.php line temporarily removed — see ROADMAP.md.
  *
+ * Verifies admin setting defaults, not a specific unit of code.
+ *
+ * @coversNothing
  * @package    tool_tracy
  * @copyright  2026 Radek Krejci
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
-class noop_by_default_test extends \advanced_testcase {
+final class noop_by_default_test extends \advanced_testcase {
     public function test_activation_defaults_to_admins_only(): void {
         $this->resetAfterTest();
 

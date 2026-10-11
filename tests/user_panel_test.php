@@ -19,11 +19,12 @@ namespace tool_tracy;
 /**
  * Tests for \tool_tracy\user_panel.
  *
+ * @covers \tool_tracy\user_panel
  * @package    tool_tracy
  * @copyright  2026 Radek Krejci
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
-class user_panel_test extends \basic_testcase {
+final class user_panel_test extends \basic_testcase {
     public function test_gettab_contains_svg_icon(): void {
         bootstrap::enable('development');
         $this->assertStringContainsString('<svg', (new user_panel())->getTab());

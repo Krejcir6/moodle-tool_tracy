@@ -23,11 +23,12 @@ use tool_tracy\privacy\provider;
 /**
  * Tests for the Privacy API metadata provider.
  *
+ * @covers \tool_tracy\privacy\provider
  * @package    tool_tracy
  * @copyright  2026 Radek Krejci
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
-class privacy_provider_test extends \basic_testcase {
+final class privacy_provider_test extends \basic_testcase {
     public function test_file_log_metadata_is_declared(): void {
         $collection = provider::get_metadata(new collection('tool_tracy'));
         $items = $collection->get_collection();
