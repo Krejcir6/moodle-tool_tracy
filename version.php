@@ -24,8 +24,8 @@
 
 defined('MOODLE_INTERNAL') || die();
 
-$plugin->version = 2026101101;
+$plugin->version = 2026101200;
 $plugin->requires = 2024100700; // Moodle 4.5+ (PHP 8.1+).
 $plugin->component = 'tool_tracy';
 $plugin->maturity = MATURITY_ALPHA;
-$plugin->release = '0.3.2';
+$plugin->release = '0.3.3';
