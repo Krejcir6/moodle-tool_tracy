@@ -37,6 +37,13 @@ final class hook_callbacks {
             return;
         }
 
+        // Plugin tables (tool_tracy_deploy) don't exist until our own install
+        // step runs. get_config() reads core's own config_plugins table, so
+        // it's always safe to call, even before tool_tracy is installed.
+        if (get_config('tool_tracy', 'version') === false) {
+            return;
+        }
+
         require_once(__DIR__ . '/../lib.php');
 
         try {
